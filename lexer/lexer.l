@@ -19,6 +19,7 @@ std::string handleName(std::string yytext) {
   auto it = std::find_if(symtable.begin(), symtable.end(), [&yytext](const Symbol sym){ return yytext.compare(sym.name) == 0; });
 
   if(it != symtable.end()) {
+    std::cout << "found these" << (*it).no << std::endl;
     return "ID" + (*it).no;
   }
 
