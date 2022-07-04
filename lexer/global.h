@@ -13,6 +13,7 @@ struct Symbol {
 std::vector<Symbol> symtable;
 std::stringstream ss;
 
+std::vector<std::string> vocabulary;
 std::vector<std::string> keywords {
   "return", "auto", "break", "case", 
   "char", "const", "continue", "default", 
@@ -22,7 +23,11 @@ std::vector<std::string> keywords {
   "short", "signed", "sizeof", "static", 
   "struct", "switch", "typedef", "union", 
   "unsigned", "void", "volatile", "while", 
-  "true", "false", "printf", "scanf"};
+  "true", "false", "printf", "scanf", "~", 
+  "!", "#", "$", "%", "^", "&", "*", "(",
+  ")", "_", "+", ",", ".", "/", "|","\\",
+  "`", "-", "=", "<", ">", "?", "{", "}",
+  "[", "]", ":", ";"};
 
 std::string handleName(std::string);
 std::string parse_initialization(const std::string yytext, char delimiter);
