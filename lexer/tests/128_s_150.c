@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 
 int main(void)
 {   
@@ -8,19 +8,6 @@ int main(void)
 
 	 n=(a>=b);
      m=(a>=c);
-
 	printf("%d",n+m);
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
