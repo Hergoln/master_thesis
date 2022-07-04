@@ -17,7 +17,7 @@
 
 				}
 
-				for(int i= 0; i < size; i++) {
+				for(int i=0, j=1, g=2; i < size; i++) {
 
 				}
 

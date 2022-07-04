@@ -15,18 +15,29 @@ int DONE;
 
 extern std::vector<Symbol> symtable;
 
-std::string handleName(std::string yytext) {
+std::string handle_name(const std::string yytext, const std::string prefix) {
   auto it = std::find_if(symtable.begin(), symtable.end(), [&yytext](const Symbol sym){ return yytext.compare(sym.name) == 0; });
 
   if(it != symtable.end()) {
-    std::cout << "found these" << (*it).no << std::endl;
-    return "ID" + (*it).no;
+    return prefix + std::to_string((*it).no);
   }
 
   long no = symtable.size();
 
-  symtable.push_back({yytext, no});
+  symtable.push_back({yytext, prefix, no});
   return "ID" + std::to_string(no);
+}
+
+std::string parse_initialization(const std::string yytext, char delimiter) {
+  std::vector<std::string> parsed;
+  std::stringstream ss(yytext);
+  std::string item, result;
+
+  while(getline(ss, item, delimiter)) parsed.push_back(item);
+  parsed[0] = handle_name(parsed[0], "type");
+  parsed[1] = handle_name(parsed[1], "ID");
+
+  return parsed[0] + delimiter + parsed[1];
 }
 
 %}
@@ -55,22 +66,22 @@ ID       {L}({L}|{D})*
 {comment}                     {}
 {delim}                       {}
 
-{KWs}                         { printf("%s", yytext);}
-{string}                      { printf("STRING_LITERAL");}
+{KWs}                         { std::cout <<  yytext;}
+{string}                      { std::cout << "STRING_LITERAL";}
 
-0[xX]{H}+{IS}?		            { printf("%s", yytext); } // numbers
-0{D}+{IS}?		                { printf("%s", yytext); }  // numbers
-{D}+{IS}?		                  { printf("%s", yytext); }  // numbers
+0[xX]{H}+{IS}?		            { std::cout << yytext; } // numbers
+0{D}+{IS}?		                { std::cout << yytext; }  // numbers
+{D}+{IS}?		                  { std::cout << yytext; }  // numbers
 
-{D}+{E}{FS}?	              	{ printf("%s", yytext); } // numbers
-{D}*"."{D}+({E})?{FS}?	      { printf("%s", yytext); } // floating numbers
-{D}+"."{D}*({E})?{FS}?	      { printf("%s", yytext); } // floating numbers
+{D}+{E}{FS}?	              	{ std::cout << yytext; } // numbers
+{D}*"."{D}+({E})?{FS}?	      { std::cout << yytext; } // floating numbers
+{D}+"."{D}*({E})?{FS}?	      { std::cout << yytext; } // floating numbers
 
-{ID}[ ]{ID}                   { printf("type variable");} // this rules is here because except string literals, values declarations are the only place "ID ID" construction exists in C
+{ID}[ ]{ID}                   { std::cout << parse_initialization(yytext, ' '); }
 
-{ID}	                        { std::cout << handleName(yytext); }
-<<EOF>>                       { printf("\n"); return DONE; }
-.                             { printf("%s", yytext); }
+{ID}	                        { std::cout << handle_name(yytext, "ID"); }
+<<EOF>>                       { std::cout << std::endl; return DONE; }
+.                             { std::cout << yytext; }
 %%
 
 
