@@ -13,6 +13,10 @@ int STRING_LITERAL;
 int ID;
 int DONE;
 
+std::string NUM_LIT = "NUM";
+std::string STR_LIT = "STR";
+
+
 extern std::vector<Symbol> symtable;
 
 std::string handle_name(const std::string yytext, const std::string prefix) {
@@ -67,15 +71,15 @@ ID       {L}({L}|{D})*
 {delim}                       {}
 
 {KWs}                         { std::cout <<  yytext;}
-{string}                      { std::cout << "STRING_LITERAL";}
+{string}                      { std::cout << STR_LIT;}
 
-0[xX]{H}+{IS}?		            { std::cout << yytext; } // numbers
-0{D}+{IS}?		                { std::cout << yytext; }  // numbers
-{D}+{IS}?		                  { std::cout << yytext; }  // numbers
+0[xX]{H}+{IS}?		            { std::cout << NUM_LIT; } // numbers
+0{D}+{IS}?		                { std::cout << NUM_LIT; }  // numbers
+{D}+{IS}?		                  { std::cout << NUM_LIT; }  // numbers
 
-{D}+{E}{FS}?	              	{ std::cout << yytext; } // numbers
-{D}*"."{D}+({E})?{FS}?	      { std::cout << yytext; } // floating numbers
-{D}+"."{D}*({E})?{FS}?	      { std::cout << yytext; } // floating numbers
+{D}+{E}{FS}?	              	{ std::cout << NUM_LIT; } // numbers
+{D}*"."{D}+({E})?{FS}?	      { std::cout << NUM_LIT; } // floating numbers
+{D}+"."{D}*({E})?{FS}?	      { std::cout << NUM_LIT; } // floating numbers
 
 {ID}[ ]{ID}                   { std::cout << parse_initialization(yytext, ' '); }
 
