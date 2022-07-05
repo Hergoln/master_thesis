@@ -1,8 +1,13 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
-#include <string.h>
+#include <string>
 #include <vector>
+
+extern std::string NUM_LIT;
+extern std::string STR_LIT;
+
+extern std::stringstream ss;
 
 struct Symbol {
   std::string name;
@@ -10,25 +15,9 @@ struct Symbol {
   long no;
 };
 
-std::vector<Symbol> symtable;
-std::stringstream ss;
-
-std::vector<std::string> vocabulary;
-std::vector<std::string> keywords {
-  "return", "auto", "break", "case", 
-  "char", "const", "continue", "default", 
-  "do", "double", "else", "enum", 
-  "extern", "float", "for", "goto", "if", 
-  "int", "long", "register", "return", 
-  "short", "signed", "sizeof", "static", 
-  "struct", "switch", "typedef", "union", 
-  "unsigned", "void", "volatile", "while", 
-  "true", "false", "printf", "scanf", "~", 
-  "!", "#", "$", "%", "^", "&", "*", "(",
-  ")", "_", "+", ",", ".", "/", "|","\\",
-  "`", "-", "=", "<", ">", "?", "{", "}",
-  "[", "]", ":", ";"};
-
 std::string handleName(std::string);
-std::string parse_initialization(const std::string yytext, char delimiter);
-std::string parse_reference(const std::string yytext);
+std::string parse_initialization(const std::string);
+std::string parse_reference(const std::string);
+void fill_vocabulary();
+std::string from_dict(std::string);
+std::string decode(std::string);
