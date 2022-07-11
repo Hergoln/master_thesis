@@ -9,6 +9,8 @@ extern std::string STR_LIT;
 
 extern std::stringstream ss;
 
+extern int length;
+
 struct Symbol {
   std::string name;
   std::string prefix;

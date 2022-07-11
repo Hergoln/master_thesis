@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <vector>
 
+int length;
+
 std::vector<Symbol> symtable;
 
 std::vector<std::string> vocabulary;
@@ -48,6 +50,8 @@ std::string decode(std::string id) {
 std::string from_dict(std::string element) {
   if(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin() == 244)
     std::cout << "el : " << element << std::endl;
+
+  length++;
   return std::to_string(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin()) + " ";
 }
 
