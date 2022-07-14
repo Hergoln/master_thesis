@@ -8,6 +8,7 @@ std::vector<Symbol> symtable;
 
 std::vector<std::string> vocabulary;
 std::vector<std::string> keywords {
+  "EMPTY",
   "return", "auto", "break", "case", 
   "char", "const", "continue", "default", 
   "do", "double", "else", "enum", 

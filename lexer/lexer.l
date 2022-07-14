@@ -9,8 +9,8 @@ int DONE;
 extern int length; // this value is temporary and is used only to estimate average length of the vectorized representation
 int vector_length;
 
-const int DEFAULT_VECTOR_LENGTH = 512;
-const std::string EMPTY_TOKEN = "-1"; // take care of that, maybe 0? I think it should be a positive number
+const int DEFAULT_VECTOR_LENGTH = 512; // Till i do not get more samples from doctor I can't say if it is small or big number
+const std::string EMPTY_TOKEN = "0"; // take care of that, maybe 0? I think it should be a positive number
 
 std::string find_arg(char** argv, int argc, const std::string & option) {
     char ** itr = std::find(argv, argv+argc, option);
@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
     vector_length = stoi(option);
     std::cout << vector_length << std::endl;
   } else {
-    vector_length = DEFAULT_VECTOR_LENGTH; // Till i do not get more samples from doctor I can't say if it is small or big number
+    vector_length = DEFAULT_VECTOR_LENGTH;
   }
 
   option = find_arg(argv, argc, "outfile");
