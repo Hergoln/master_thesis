@@ -6,9 +6,12 @@ int length;
 
 std::vector<Symbol> symtable;
 
+std::string NUM_LIT = "NUM";
+std::string STR_LIT = "STR";
+std::string EMPTY = "EMPTY";
+
 std::vector<std::string> vocabulary;
 std::vector<std::string> keywords {
-  "EMPTY",
   "return", "auto", "break", "case", 
   "char", "const", "continue", "default", 
   "do", "double", "else", "enum", 
@@ -23,8 +26,7 @@ std::vector<std::string> keywords {
   "`", "-", "=", "<", ">", "?", "{", "}",
   "[", "]", ":", ";"};
 
-std::string NUM_LIT = "NUM";
-std::string STR_LIT = "STR";
+
 
 void loop_fill(std::string type, int capacity) {
   for(int i = 0; i < capacity; ++i)
@@ -32,6 +34,7 @@ void loop_fill(std::string type, int capacity) {
 }
 
 void fill_vocabulary() {
+  vocabulary.push_back(EMPTY);
   vocabulary.push_back(NUM_LIT);
   vocabulary.push_back(STR_LIT);
 
@@ -50,7 +53,7 @@ std::string decode(std::string id) {
 
 std::string from_dict(std::string element) {
   if(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin() == 244)
-    std::cout << "el : " << element << std::endl;
+    std::cout << "Unknown element : " << element << std::endl;
 
   length++;
   return std::to_string(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin()) + " ";

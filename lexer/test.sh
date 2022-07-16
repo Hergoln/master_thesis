@@ -1,2 +1,2 @@
 make
-./lexer $1.parsed < $1
+./lexer < $1 outfile $1.parsed
