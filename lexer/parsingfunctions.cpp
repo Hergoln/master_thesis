@@ -101,8 +101,19 @@ std::vector<int> parse_reference(const std::string yytext) {
 
   result.push_back(handle_name(parsed[0], "ID"));
   for (int i = 1; i < parsed.size(); ++i) {
-    result.push_back(from_dict(".RF" + std::to_string(i - 1)));
+    result.push_back(from_dict("."));
+    result.push_back(from_dict("RF" + std::to_string(i - 1)));
   }
   
   return result;
 } 
+
+
+std::string find_arg(char** argv, int argc, const std::string & option) {
+    char ** itr = std::find(argv, argv+argc, option);
+    if (itr != argv+argc && ++itr != argv+argc)
+    {
+        return std::string(*(itr));
+    }
+    return "";
+}

@@ -5,13 +5,20 @@ int main(int argc, char* argv[]) {
   std::string outfile, infile;
   std::fstream ofs, ifs;
 
-  if (argc <= 2) {
-    std::cerr << "Didn't receive output and input files" << std::endl;
+  std::string option = find_arg(argv, argc, "outfile");
+  if (option.empty()) {
+    std::cerr << "Didn't receive output file" << std::endl;
     outfile = "test_out_decoded.parsed";
+  } else {
+    outfile += option;
+  }
+
+  option = find_arg(argv, argc, "inputfile");
+  if (option.empty()) {
+    std::cerr << "Didn't receive input file" << std::endl;
     infile = "test_out.parsed";
   } else {
-    outfile += argv[1];
-    infile += argv[2];
+    infile += option;
   }
 
   fill_vocabulary();

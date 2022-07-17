@@ -23,3 +23,4 @@ std::vector<int> parse_reference(const std::string);
 void fill_vocabulary();
 int from_dict(std::string);
 std::string decode(std::string);
+std::string find_arg(char**, int, const std::string&);

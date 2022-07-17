@@ -19,14 +19,6 @@ int vector_length;
 const int DEFAULT_VECTOR_LENGTH = 512; // Till i do not get more samples from doctor I can't say if it is small or big number
 const std::string EMPTY_TOKEN = "0";
 
-std::string find_arg(char** argv, int argc, const std::string & option) {
-    char ** itr = std::find(argv, argv+argc, option);
-    if (itr != argv+argc && ++itr != argv+argc)
-    {
-        return std::string(*(itr));
-    }
-    return "";
-}
 
 void save_samples(std::vector<SAMPLE> samples, std::string outfile, int vector_length) {
   std::ofstream ofs;
