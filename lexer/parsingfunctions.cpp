@@ -51,15 +51,14 @@ std::string decode(std::string id) {
   return vocabulary[std::stoi(id)];
 }
 
-std::string from_dict(std::string element) {
+int from_dict(std::string element) {
   if(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin() == 244)
     std::cout << "Unknown element : " << element << std::endl;
 
-  length++;
-  return std::to_string(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin()) + " ";
+  return std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin();
 }
 
-std::string handle_name(const std::string yytext, const std::string prefix) {
+int handle_name(const std::string yytext, const std::string prefix) {
   std::string element = prefix;
   if (std::find(keywords.begin(), keywords.end(), yytext) != keywords.end()) {
     return from_dict(yytext);
@@ -77,30 +76,32 @@ std::string handle_name(const std::string yytext, const std::string prefix) {
   return from_dict(element);
 }
 
-std::string parse_initialization(const std::string yytext) {
+std::vector<int> parse_initialization(const std::string yytext) {
   char del = ' ';
   std::vector<std::string> parsed;
   std::stringstream ss(yytext);
-  std::string item, result;
+  std::string item;
+  std::vector<int> result;
 
   while(getline(ss, item, del)) parsed.push_back(item);
-  parsed[0] = handle_name(parsed[0], "TP");
-  parsed[1] = handle_name(parsed[1], "ID");
+  result.push_back(handle_name(parsed[0], "TP"));
+  result.push_back(handle_name(parsed[1], "ID"));
 
-  return parsed[0] + parsed[1];
+  return result;
 }
 
-std::string parse_reference(const std::string yytext) {
+std::vector<int> parse_reference(const std::string yytext) {
   char del = '.';
   std::vector<std::string> parsed;
   std::stringstream ss(yytext);
-  std::string item, result;
+  std::string item;
+  std::vector<int> result;
 
   while(getline(ss, item, del)) parsed.push_back(item);
 
-  result = handle_name(parsed[0], "ID");
+  result.push_back(handle_name(parsed[0], "ID"));
   for (int i = 1; i < parsed.size(); ++i) {
-    result += from_dict(".RF" + std::to_string(i - 1));
+    result.push_back(from_dict(".RF" + std::to_string(i - 1)));
   }
   
   return result;

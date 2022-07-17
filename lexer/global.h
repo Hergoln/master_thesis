@@ -17,9 +17,9 @@ struct Symbol {
   long no;
 };
 
-std::string handleName(std::string);
-std::string parse_initialization(const std::string);
-std::string parse_reference(const std::string);
+int handleName(std::string);
+std::vector<int> parse_initialization(const std::string);
+std::vector<int> parse_reference(const std::string);
 void fill_vocabulary();
-std::string from_dict(std::string);
+int from_dict(std::string);
 std::string decode(std::string);

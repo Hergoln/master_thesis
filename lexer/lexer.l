@@ -4,19 +4,16 @@
 #include <fstream>
 #include <algorithm>
 #include <functional>
+#include <memory>
 
-struct SAMPLE {
-  std::string tokens;
-  int length;
-} SAMPLE;
+typedef std::shared_ptr<std::vector<int>> SAMPLE;
 
-std::stringstream ss;
-std::vector<std::string> samples;
+SAMPLE crrs;
+std::vector<SAMPLE> samples;
 
 int DONE;
 int brack_cnt = 0;
 bool no_brack_yet = true;
-extern int length; // this value is temporary and is used only to estimate average length of the vectorized representation
 int vector_length;
 
 const int DEFAULT_VECTOR_LENGTH = 512; // Till i do not get more samples from doctor I can't say if it is small or big number
@@ -31,17 +28,26 @@ std::string find_arg(char** argv, int argc, const std::string & option) {
     return "";
 }
 
-void save_samples(std::vector<std::string> samples, std::string outfile, int vector_length) {
+void save_samples(std::vector<SAMPLE> samples, std::string outfile, int vector_length) {
   std::ofstream ofs;
   for (int i =0; i < samples.size(); ++i) {
-    std::string sample = samples[i];
-
-    // int l = length;
-    // while(l++ < vector_length) ss << EMPTY_TOKEN << " ";
+    SAMPLE sample = samples[i];
     ofs.open(std::to_string(i) + outfile, std::ofstream::out);
-    ofs << sample;
+    // stream tokens into ofstream
+    for (int t : *sample) {
+      ofs << std::to_string(t) << " ";
+    }
+
+    // fill with EMPTY
+    for(int i = 0; i < vector_length - sample->size(); ++i)
+      ofs << EMPTY_TOKEN << " ";
+
     ofs.close();
   }
+}
+
+void psh_t(SAMPLE sample, int token) {
+  sample->push_back(token);
 }
 
 %}
@@ -69,17 +75,17 @@ ID       {L}({L}|{D})*
 {comment}                     {}
 {delim}                       {}
 
-{string}                      { ss << from_dict(STR_LIT);}
+{string}                      { psh_t(crrs, from_dict(STR_LIT));}
 
-0[xX]{H}+{IS}?		            { ss << from_dict(NUM_LIT);} // numbers
-0{D}+{IS}?		                { ss << from_dict(NUM_LIT);}  // numbers
-{D}+{IS}?		                  { ss << from_dict(NUM_LIT);}  // numbers
-{D}+{E}{FS}?	              	{ ss << from_dict(NUM_LIT);} // numbers
-{D}*"."{D}+({E})?{FS}?	      { ss << from_dict(NUM_LIT);} // floating numbers
-{D}+"."{D}*({E})?{FS}?	      { ss << from_dict(NUM_LIT);} // floating numbers
+0[xX]{H}+{IS}?		            { psh_t(crrs, from_dict(NUM_LIT));} // numbers
+0{D}+{IS}?		                { psh_t(crrs, from_dict(NUM_LIT));}  // numbers
+{D}+{IS}?		                  { psh_t(crrs, from_dict(NUM_LIT));}  // numbers
+{D}+{E}{FS}?	              	{ psh_t(crrs, from_dict(NUM_LIT));} // numbers
+{D}*"."{D}+({E})?{FS}?	      { psh_t(crrs, from_dict(NUM_LIT));} // floating numbers
+{D}+"."{D}*({E})?{FS}?	      { psh_t(crrs, from_dict(NUM_LIT));} // floating numbers
 
-{ID}[ ]{ID}                   { ss << parse_initialization(yytext);}
-{ID}("."{ID})*	              { ss << parse_reference(yytext);}
+{ID}[ ]{ID}                   { for (int t : parse_initialization(yytext)) psh_t(crrs, t); }
+{ID}("."{ID})*	              { for (int t : parse_reference(yytext)) psh_t(crrs, t); }
 <<EOF>>                       { return DONE; }
 .                             { 
   if (!strcmp("{", yytext)) {
@@ -90,12 +96,12 @@ ID       {L}({L}|{D})*
   if (!strcmp("}", yytext)) 
     brack_cnt--;
     
-  ss << from_dict(yytext); // should be before any modifications because it will add '}' to stream
+  psh_t(crrs, from_dict(yytext)); // should be before any modifications because it will add '}' to stream
 
   if (brack_cnt == 0 && !no_brack_yet) {
     no_brack_yet = true;
-    samples.push_back(ss.str());
-    ss.str("");
+    samples.push_back(crrs);
+    crrs = SAMPLE(new std::vector<int>());
   }
 }
 %%
@@ -120,12 +126,9 @@ int main(int argc, char* argv[]) {
   }
 
   fill_vocabulary();
+  crrs = SAMPLE(new std::vector<int>());
   int res = yylex(); // lexing magic happens here
 
-
   save_samples(samples, outfile, vector_length);
-
-  std::cout << "Write to file: " << outfile << std::endl;
-  std::cout << "No. of tokens saved: " << length << std::endl;
   return res;
 }
