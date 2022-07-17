@@ -16,14 +16,27 @@ int brack_cnt = 0;
 bool no_brack_yet = true;
 int vector_length;
 
+const std::string DEFAULT_TOO_LONG_FILE = "too_long_functions.log";
+std::string CURRENT_FILE = "NOT_SPECIFIED";
+
 const int DEFAULT_VECTOR_LENGTH = 512; // Till i do not get more samples from doctor I can't say if it is small or big number
 const std::string EMPTY_TOKEN = "0";
 
 
 void save_samples(std::vector<SAMPLE> samples, std::string outfile, int vector_length) {
   std::ofstream ofs;
+  std::ofstream too_long_ofs;
+
+  too_long_ofs.open(DEFAULT_TOO_LONG_FILE, std::ofstream::app);
+
   for (int i =0; i < samples.size(); ++i) {
     SAMPLE sample = samples[i];
+
+    if (sample->size() > vector_length) {
+      too_long_ofs << CURRENT_FILE << ": function no.: " << i << std::endl;
+      continue;
+    }
+
     ofs.open(std::to_string(i) + outfile, std::ofstream::out);
     // stream tokens into ofstream
     for (int t : *sample) {
@@ -36,6 +49,7 @@ void save_samples(std::vector<SAMPLE> samples, std::string outfile, int vector_l
 
     ofs.close();
   }
+  too_long_ofs.close();
 }
 
 void psh_t(SAMPLE sample, int token) {
@@ -107,6 +121,12 @@ int main(int argc, char* argv[]) {
     std::cout << vector_length << std::endl;
   } else {
     vector_length = DEFAULT_VECTOR_LENGTH;
+  }
+
+  option = find_arg(argv, argc, "outfile");
+  if (!option.empty()) {
+    std::cerr << "Didn't specifie input file name" << std::endl;
+    CURRENT_FILE = option;
   }
 
   option = find_arg(argv, argc, "outfile");
