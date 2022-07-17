@@ -123,7 +123,7 @@ int main(int argc, char* argv[]) {
     vector_length = DEFAULT_VECTOR_LENGTH;
   }
 
-  option = find_arg(argv, argc, "outfile");
+  option = find_arg(argv, argc, "input");
   if (!option.empty()) {
     std::cerr << "Didn't specifie input file name" << std::endl;
     CURRENT_FILE = option;
