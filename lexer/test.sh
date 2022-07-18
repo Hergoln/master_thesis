@@ -1,2 +1,2 @@
 make
-./lexer < $1 input $1 outfile $1.parsed
+./lexer < $1 inp $(basename $1) out $(dirname $1)

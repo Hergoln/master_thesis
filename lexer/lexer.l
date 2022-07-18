@@ -14,16 +14,49 @@ std::vector<SAMPLE> samples;
 int DONE;
 int brack_cnt = 0;
 bool no_brack_yet = true;
-int vector_length;
 
-const std::string DEFAULT_TOO_LONG_FILE = "too_long_functions.log";
-std::string CURRENT_FILE = "NOT_SPECIFIED";
+// options
+int VECTOR_LENGTH;
+std::string INPUT = "NOT_SPECIFIED";
+std::string OUTPUT_DIR = ".";
 
-const int DEFAULT_VECTOR_LENGTH = 512; // Till i do not get more samples from doctor I can't say if it is small or big number
-const std::string EMPTY_TOKEN = "0";
+void print_help() {
+  std::cout << "inp:\n\tfile that is being processed, actaul stream\n\tshould be passed as stream" <<
+   "'< file'" << std::endl << std::endl;
+  std::cout << "out:\n\tdirectory that should be place for output files" << std::endl << std::endl;
+  std::cout << "vector-length:\n\tlength of the output vectort. If out\n\tvector for a function" <<
+  " from given file is" << 
+  "\n\tlonger than vector-length than the rest\n\twill be filled with '0' (EMPTY token)" << std::endl;
+}
 
+void prepare_options(int argc, char** argv) {
+  std::string option = find_arg(argv, argc, "vector-length");
+  if(!option.empty()) {
+    VECTOR_LENGTH = stoi(option);
+  } else {
+    VECTOR_LENGTH = DEFAULT_VECTOR_LENGTH;
+  }
 
-void save_samples(std::vector<SAMPLE> samples, std::string outfile, int vector_length) {
+  option = find_arg(argv, argc, "inp");
+  if (!option.empty()) {
+    INPUT = option;
+  } else {
+    std::cerr << "Didn't specifie input file name" << std::endl;
+  }
+
+  option = find_arg(argv, argc, "out");
+  if (!option.empty()) {
+   OUTPUT_DIR = option;
+  } else {
+    std::cerr << "Didn't specifie output directory" << std::endl;
+  }
+}
+
+std::string compose_outfile(int f_no, std::string input, std::string out_dir) {
+  return out_dir + "/" + input + std::to_string(f_no) + ".parsed";
+}
+
+void save_samples(std::vector<SAMPLE> samples, std::string input, std::string output_dir, int vector_len) {
   std::ofstream ofs;
   std::ofstream too_long_ofs;
 
@@ -32,19 +65,18 @@ void save_samples(std::vector<SAMPLE> samples, std::string outfile, int vector_l
   for (int i =0; i < samples.size(); ++i) {
     SAMPLE sample = samples[i];
 
-    if (sample->size() > vector_length) {
-      too_long_ofs << CURRENT_FILE << ": function no.: " << i << std::endl;
+    if (sample->size() > vector_len) {
+      too_long_ofs << input << ": function no.: " << i << std::endl;
       continue;
     }
-
-    ofs.open(std::to_string(i) + outfile, std::ofstream::out);
+    ofs.open(compose_outfile(i, input, output_dir), std::ofstream::out);
     // stream tokens into ofstream
     for (int t : *sample) {
       ofs << std::to_string(t) << " ";
     }
 
     // fill with EMPTY
-    for(int i = 0; i < vector_length - sample->size(); ++i)
+    for(int i = 0; i < vector_len - sample->size(); ++i)
       ofs << EMPTY_TOKEN << " ";
 
     ofs.close();
@@ -114,33 +146,15 @@ ID       {L}({L}|{D})*
 
 
 int main(int argc, char* argv[]) {
-  std::string outfile;
-  std::string option = find_arg(argv, argc, "vector-length");
-  if(!option.empty()) {
-    vector_length = stoi(option);
-    std::cout << vector_length << std::endl;
-  } else {
-    vector_length = DEFAULT_VECTOR_LENGTH;
+  if (!find_single_arg(argv, argc, "--help").empty()) {
+    print_help();
+    return 0;
   }
 
-  option = find_arg(argv, argc, "input");
-  if (!option.empty()) {
-    std::cerr << "Didn't specifie input file name" << std::endl;
-    CURRENT_FILE = option;
-  }
-
-  option = find_arg(argv, argc, "outfile");
-  if (option.empty()) {
-    std::cerr << "Didn't receive output file" << std::endl;
-    outfile = "test_out.parsed";
-  } else {
-    outfile += option;
-  }
-
+  prepare_options(argc, argv);
   fill_vocabulary();
   crrs = SAMPLE(new std::vector<int>());
   int res = yylex(); // lexing magic happens here
-
-  save_samples(samples, outfile, vector_length);
+  save_samples(samples, INPUT, OUTPUT_DIR, VECTOR_LENGTH);
   return res;
 }

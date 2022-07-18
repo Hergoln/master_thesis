@@ -108,6 +108,14 @@ std::vector<int> parse_reference(const std::string yytext) {
   return result;
 } 
 
+std::string find_single_arg(char** argv, int argc, const std::string & option) {
+  char ** itr = std::find(argv, argv+argc, option);
+  if (itr != argv+argc) {
+    return std::string(*(itr));
+  }
+
+  return "";
+}
 
 std::string find_arg(char** argv, int argc, const std::string & option) {
     char ** itr = std::find(argv, argv+argc, option);
