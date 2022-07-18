@@ -1,0 +1,1 @@
+./$1 < $2 inp $(basename $2) out $3

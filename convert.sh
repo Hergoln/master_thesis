@@ -1,0 +1,1 @@
+find $2 -type f -exec ./single_lex.sh $1 {} $3 \;
