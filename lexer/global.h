@@ -10,9 +10,9 @@ extern std::string STR_LIT;
 extern std::stringstream ss;
 
 extern int length;
-
+  
 const std::string DEFAULT_TOO_LONG_FILE = "too_long_functions.log";
-const int DEFAULT_VECTOR_LENGTH = 512; // Till i do not get more samples from doctor I can't say if it is small or big number
+const int DEFAULT_VECTOR_LENGTH = 2048; // Till i do not get more samples from doctor I can't say if it is small or big number
 const std::string EMPTY_TOKEN = "0";
 
 struct Symbol {

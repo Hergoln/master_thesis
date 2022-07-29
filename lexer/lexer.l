@@ -93,6 +93,7 @@ void psh_t(SAMPLE sample, int token) {
 %option noyywrap
 
 delim   [ \t]
+nl      \r?\n|\r
 D			  [0-9]
 L			  [a-zA-Z_]
 H			  [a-fA-F0-9]
@@ -108,7 +109,7 @@ string  \"([^\\"]|\\.)*\"
 ID       {L}({L}|{D})*
 
 %%
-\r?\n                         {}
+{nl}                          {}
 {includ}                      {}
 {comment}                     {}
 {delim}                       {}

@@ -52,8 +52,10 @@ std::string decode(std::string id) {
 }
 
 int from_dict(std::string element) {
-  if(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin() == 244)
-    std::cout << "Unknown element : " << element << std::endl;
+  if(std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin() >= 244){
+    std::cout << "Unknown element : |" << element << "|" << std::endl;
+    std::cout << "element[0]: " << int(element[0]) << std::endl;
+    }
 
   return std::find(vocabulary.begin(), vocabulary.end(), element) - vocabulary.begin();
 }
