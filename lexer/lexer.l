@@ -27,9 +27,7 @@ void print_help() {
   std::cout << "out:\n\tdirectory that should be place for output files" << std::endl << std::endl;
   std::cout << "vector-length:\n\tlength of the output vectort. If out\n\tvector for a function" <<
   " from given file is" << 
-  "\n\tlonger than vector-length than the rest\n\twill be filled with '0' (EMPTY token)" << std::endl << std::endl;
-  std::cout << "--only-split:\n\tif set, lexer works as splitter and splits .c file into functions"
-  << std::endl;
+  "\n\tlonger than vector-length than the rest\n\twill be filled with '0' (EMPTY token)" << std::endl;
 }
 
 void prepare_options(int argc, char** argv) {
@@ -52,10 +50,6 @@ void prepare_options(int argc, char** argv) {
    OUTPUT_DIR = option;
   } else {
     std::cerr << "Didn't specifie output directory" << std::endl;
-  }
-
-  if(!find_single_arg(argv, argc, "--only_split").empty()) {
-    IS_SPLITTER = TRUE;
   }
 }
 
@@ -88,6 +82,7 @@ void save_samples(std::vector<SAMPLE> samples, std::string input, std::string ou
 
     ofs.close();
   }
+  
   too_long_ofs.close();
 }
 
@@ -163,6 +158,6 @@ int main(int argc, char* argv[]) {
   fill_vocabulary();
   crrs = SAMPLE(new std::vector<int>());
   int res = yylex(); // lexing magic happens here
-  save_samples(samples, INPUT, OUTPUT_DIR, VECTOR_LENGTH);
+  save_samples(samples, INPUT, OUTPUT_DIR, VECTOR_LENGTH);  
   return res;
 }
