@@ -19,6 +19,7 @@ bool no_brack_yet = true;
 int VECTOR_LENGTH;
 std::string INPUT = "NOT_SPECIFIED";
 std::string OUTPUT_DIR = ".";
+int IS_SPLITTER = FALSE;
 
 void print_help() {
   std::cout << "inp:\n\tfile that is being processed, actaul stream\n\tshould be passed as stream" <<
@@ -26,7 +27,9 @@ void print_help() {
   std::cout << "out:\n\tdirectory that should be place for output files" << std::endl << std::endl;
   std::cout << "vector-length:\n\tlength of the output vectort. If out\n\tvector for a function" <<
   " from given file is" << 
-  "\n\tlonger than vector-length than the rest\n\twill be filled with '0' (EMPTY token)" << std::endl;
+  "\n\tlonger than vector-length than the rest\n\twill be filled with '0' (EMPTY token)" << std::endl << std::endl;
+  std::cout << "--only-split:\n\tif set, lexer works as splitter and splits .c file into functions"
+  << std::endl;
 }
 
 void prepare_options(int argc, char** argv) {
@@ -49,6 +52,10 @@ void prepare_options(int argc, char** argv) {
    OUTPUT_DIR = option;
   } else {
     std::cerr << "Didn't specifie output directory" << std::endl;
+  }
+
+  if(!find_single_arg(argv, argc, "--only_split").empty()) {
+    IS_SPLITTER = TRUE;
   }
 }
 

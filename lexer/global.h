@@ -7,6 +7,9 @@
 extern std::string NUM_LIT;
 extern std::string STR_LIT;
 
+const int TRUE = 1;
+const int FALSE = 0;
+
 extern std::stringstream ss;
 
 extern int length;
