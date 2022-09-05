@@ -11,6 +11,7 @@ std::string STR_LIT = "STR";
 std::string EMPTY = "EMPTY";
 
 std::vector<std::string> vocabulary;
+// 67 keywords
 std::vector<std::string> keywords {
   "return", "auto", "break", "case", 
   "char", "const", "continue", "default", 
