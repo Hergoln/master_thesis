@@ -1,0 +1,1 @@
+from .dictionary_control import vocabulary, fill_vocabulary, convert_back_to_code

@@ -4,3 +4,5 @@
 /lexer/exe
 /parsed
 /venv
+*.log
+*.parsed
