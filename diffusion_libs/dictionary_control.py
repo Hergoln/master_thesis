@@ -17,8 +17,6 @@ keywords = [
   "`", "-", "=", "<", ">", "?", "{", "}",
   "'", "[", "]", ":", ";"]
 
-
-
 def loop_fill(type, capacity):
   for i in range(capacity):
     vocabulary.append(type + str(i))
