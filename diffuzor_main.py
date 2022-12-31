@@ -33,11 +33,10 @@ def main():
 
     try:
         print("Started loading dataset")
-        dataset_with_filenames = load_dataset(parsed_dir)
+        dataset, filenames = load_dataset(parsed_dir)
+        # dataset size has to be a multiplication of batch_size
+        dataset = dataset[:batch_size * (len(dataset)//batch_size)]
         print("Loaded dataset")
-        dataset, filenames = dataset_with_filenames
-
-        dataset[0] = scale(dataset[0], DICTIONARY_SIZE)
         print(f"Dataset shape: {dataset.shape}")
 
         network = get_network(TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, embedding_dims)

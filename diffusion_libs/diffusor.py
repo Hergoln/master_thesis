@@ -1,11 +1,22 @@
 import tensorflow as tf
 from tensorflow import keras
+import numpy as np
+
+def isScaled(dataframe):
+    for val in dataframe:
+        if val < 0 or val > 1:
+            return False
+    return True
 
 def rescale(dataframe, dic_size):
   return (dataframe * 2 / (dic_size - 1)) - 1
 
 def scale(dataframe, dic_size):
   return (dataframe + 1) * (dic_size - 1) / 2
+
+def scale_dataset(dataframe, dic_size):
+    l = lambda x: (x + 1) * (dic_size - 1) / 2
+    return np.array(list(map(l, dataframe)))
 
 class DiffusionModel(keras.Model):
     def __init__(
@@ -107,8 +118,9 @@ class DiffusionModel(keras.Model):
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises
+        # my normalization does not create standard deviation value range though
         samples = self.normalize(samples)
-        noises = tf.random.normal(shape=(self.tokens_capacity, ))
+        noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
         # sample uniform random diffusion times
         diffusion_times = tf.random.uniform(
@@ -116,10 +128,7 @@ class DiffusionModel(keras.Model):
         )
         noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
         # mix the samples with noises accordingly
-        sig = signal_rates * samples
-        noi = noise_rates * noises
-
-        noisy_samples = sig + noi
+        noisy_samples = signal_rates * samples + noise_rates * noises
 
         with tf.GradientTape() as tape:
             # train the network to separate noisy samples to their components
