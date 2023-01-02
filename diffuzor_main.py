@@ -1,14 +1,18 @@
 from diffusion_libs import *
 from tensorflow import keras
 
+import argparse
+
 import logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
-def main():
-    # data
-    num_epochs = 5 
+def parse():
+    parser = argparse.ArgumentParser(description='Python CardGame for zkum classes')
+    parser.add_argument('--dev', action='store_true', help='Development mode. Only a fraction of dataset is loaded and number of epochs is minimized')
+    return parser.parse_args()
 
+def main():
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -31,11 +35,21 @@ def main():
     c_dir = "./data/JL/"
     parsed_dir = "./data/parsed/"
 
+    args = parse()
+    if args.dev:
+        num_epochs = 4
+        max_size = batch_size
+        dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size]
+    else:
+        num_epochs = 128
+        max_size = None
+        dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size * (len(dataset)//batch_size)]
+
     try:
         print("Started loading dataset")
-        dataset, filenames = load_dataset(parsed_dir)
+        dataset, filenames = load_dataset(parsed_dir, max_size)
         # dataset size has to be a multiplication of batch_size
-        dataset = dataset[:batch_size * (len(dataset)//batch_size)]
+        dataset = dataset_trimmer(dataset, batch_size)
         print("Loaded dataset")
         print(f"Dataset shape: {dataset.shape}")
 
@@ -53,15 +67,16 @@ def main():
         )
         print("Model compiled")
 
-        checkpoint_path = "checkpoints/diffusion_model"
+        checkpoint_path = " "
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_path,
             save_weights_only=True,
-            monitor="val_kid",
-            mode="min",
+            monitor="loss", # probably should change it 
+            mode="min", # this should go with change of monitor value
             save_best_only=True,
         )
 
+        print("Started training")
         # calculate mean and variance of training dataset for normalization
         # TODO: get to know how to use this kind of normalizer and use it or discard it
         # model.normalizer.adapt(dataset)

@@ -1,15 +1,15 @@
 import numpy as np
 import os
 from multiprocessing.pool import ThreadPool
-import itertools
 
 def prepare_record(parsed_file):
   parsed = np.loadtxt(parsed_file, dtype=float, converters=float)
   return parsed
 
-
-def load_dataset(parsed_dir) -> list:
+def load_dataset(parsed_dir, max_size=None) -> list:
   parsed_files = sorted(os.listdir(parsed_dir))
+  if max_size:
+    parsed_files = parsed_files[:max_size]
 
   with ThreadPool() as pool:
     parsed_files = pool.map(lambda f: f"{parsed_dir}{f}", parsed_files)
