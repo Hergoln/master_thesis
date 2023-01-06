@@ -37,8 +37,8 @@ class DiffusionModel(keras.Model):
     def compile(self, **kwargs):
         super().compile(**kwargs)
 
-        self.noise_loss_tracker = keras.metrics.Mean(name="n_loss")
-        self.sample_loss_tracker = keras.metrics.Mean(name="i_loss")
+        self.noise_loss_tracker = keras.metrics.Mean(name="n_loss") # for training
+        self.sample_loss_tracker = keras.metrics.Mean(name="i_loss") # for human evaluation
 
     @property
     def metrics(self):
@@ -118,7 +118,7 @@ class DiffusionModel(keras.Model):
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises
-        # my normalization does not create standard deviation value range though
+        # TODO: my normalization does not create standard deviation value range though
         samples = self.normalize(samples)
         noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
@@ -149,7 +149,7 @@ class DiffusionModel(keras.Model):
         for weight, ema_weight in zip(self.network.weights, self.ema_network.weights):
             ema_weight.assign(self.ema * ema_weight + (1 - self.ema) * weight)
 
-        return {m.name: m.result() for m in self.metrics[:-1]}
+        return {m.name: m.result() for m in self.metrics}
 
     def test_step(self, samples):
         samples = self.normalize(samples)
@@ -161,7 +161,6 @@ class DiffusionModel(keras.Model):
         )
         noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
         # mix the samples with noises accordingly
-        
         noisy_samples = signal_rates * samples + noise_rates * noises
 
         # use the network to separate noisy samples to their components

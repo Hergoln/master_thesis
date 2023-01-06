@@ -25,9 +25,15 @@ def get_network(tokens_capacity, embedding_min_frequency, embedding_max_frequenc
     emb = lambda x: sinusoidal_embedding(x, embedding_min_frequency, embedding_max_frequency, embedding_dims)
     e = layers.Lambda(emb)(noise_variances)
 
-    x = layers.Dense(64)(noisy_images)
+    x = layers.Dense(1024)(noisy_images)
     x = layers.Concatenate()([x, e])
-    x = layers.Dense(1024, kernel_initializer="zeros")(x)
+    x = layers.Dense(512)(x)
+    x = layers.Dense(256)(x)
+    x = layers.Dense(128)(x)
+    x = layers.Dense(256)(x)
+    x = layers.Dense(256)(x)
+    x = layers.Dense(512)(x)
+    x = layers.Dense(1024)(x)
     x = layers.Dense(2048, kernel_initializer="zeros")(x)
 
     return keras.Model([noisy_images, noise_variances], x, name="simple_net")

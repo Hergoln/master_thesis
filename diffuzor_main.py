@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 def parse():
-    parser = argparse.ArgumentParser(description='Python CardGame for zkum classes')
+    parser = argparse.ArgumentParser(description='Master thesis')
     parser.add_argument('--dev', action='store_true', help='Development mode. Only a fraction of dataset is loaded and number of epochs is minimized')
     return parser.parse_args()
 
@@ -41,7 +41,7 @@ def main():
         max_size = batch_size
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size]
     else:
-        num_epochs = 128
+        num_epochs = 256
         max_size = None
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size * (len(dataset)//batch_size)]
 
@@ -60,19 +60,22 @@ def main():
         print("Model created")
 
         model.compile(
-            optimizer=keras.optimizers.experimental.AdamW(
+            optimizer = keras.optimizers.experimental.AdamW(
                 learning_rate=learning_rate, weight_decay=weight_decay
             ),
-            loss=keras.losses.mean_absolute_error, # it might be worth to change loss given here
+            # mse loss is pretty good for my model because it represents 
+            # how close is prediction of my model to original sample
+            # it represents "closeness of predicted code to original"
+            loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
 
-        checkpoint_path = " "
+        checkpoint_path = "checkpoints\\diffusion_model\\cp-{epoch:04d}\\"
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_path,
             save_weights_only=True,
-            monitor="loss", # probably should change it 
-            mode="min", # this should go with change of monitor value
+            monitor="i_loss",
+            mode="min",
             save_best_only=True,
         )
 
@@ -82,7 +85,7 @@ def main():
         # model.normalizer.adapt(dataset)
 
         # run training
-        model.fit(
+        history = model.fit(
             dataset,
             batch_size=batch_size,
             epochs=num_epochs,
