@@ -69,6 +69,7 @@ def main():
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
+        model.summary()
 
         checkpoint_path = "checkpoints\\diffusion_model\\cp-{epoch:04d}\\"
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -80,17 +81,14 @@ def main():
         )
 
         print("Started training")
-        # calculate mean and variance of training dataset for normalization
-        # TODO: get to know how to use this kind of normalizer and use it or discard it
-        # model.normalizer.adapt(dataset)
-
         # run training
-        history = model.fit(
+        model.fit(
             dataset,
             batch_size=batch_size,
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
+                keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv")
             ],
         )
         print("Completed training")
