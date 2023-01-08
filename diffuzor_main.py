@@ -1,4 +1,5 @@
 from diffusion_libs import *
+import tensorflow as tf
 from tensorflow import keras
 
 import argparse
@@ -41,7 +42,7 @@ def main():
         max_size = batch_size
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size]
     else:
-        num_epochs = 256
+        num_epochs = 4096
         max_size = None
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size * (len(dataset)//batch_size)]
 
@@ -69,11 +70,10 @@ def main():
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        model.summary()
 
-        checkpoint_path = "checkpoints\\diffusion_model\\cp-{epoch:04d}\\"
+        checkpoint_path = "checkpoints\\diffusion_model\\cp-{epoch:04d}\\model"
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_path,
+            checkpoint_path,
             save_weights_only=True,
             monitor="i_loss",
             mode="min",
