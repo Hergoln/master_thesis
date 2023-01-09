@@ -113,8 +113,8 @@ class DiffusionModel(keras.Model):
         # Generate sample from complete noise
         initial_noise = tf.random.normal(shape=(num_samples, self.tokens_capacity))
         generated_sample = self.reverse_diffusion(initial_noise, diffusion_steps)
-        generated_sample = self.denormalize(generated_sample)
-        return generated_sample
+        denormalized_generated_sample = self.denormalize(generated_sample)
+        return generated_sample, denormalized_generated_sample
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises

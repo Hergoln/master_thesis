@@ -29,9 +29,9 @@ def fill_vocabulary():
   for keyword in keywords:
     vocabulary.append(keyword)
 
-  loop_fill("ID", 128);
-  loop_fill("TP", 32);
-  loop_fill("RF", 16);
+  loop_fill("ID", 128)
+  loop_fill("TP", 32)
+  loop_fill("RF", 16)
 
 def val_to_word(val):
   return vocabulary[int(val)]

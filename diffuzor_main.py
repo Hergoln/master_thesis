@@ -60,6 +60,9 @@ def main():
         model = DiffusionModel(TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, min_signal_rate, ema)
         print("Model created")
 
+        preprocessed_dataset = rescale(dataset, DICTIONARY_SIZE)
+        print("Dataset preprocessed")
+
         model.compile(
             optimizer = keras.optimizers.experimental.AdamW(
                 learning_rate=learning_rate, weight_decay=weight_decay
@@ -67,28 +70,34 @@ def main():
             # mse loss is pretty good for my model because it represents 
             # how close is prediction of my model to original sample
             # it represents "closeness of predicted code to original"
+            # loss function cannot be simply MAE because most of samples
+            # are EMPTY, this means full of EMPTY symbols thus anything
+            # that we get will be compared to mostly EMPTY vector. I think I
+            # have to use maybe attention mechanism or something that addresses
+            # this issue
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-
-        checkpoint_path = "checkpoints\\diffusion_model\\cp-{epoch:04d}\\model"
+        
+        checkpoint_path = "checkpoints\diffusion_model\cp-{epoch:04d}\model"
+        
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             checkpoint_path,
             save_weights_only=True,
             monitor="i_loss",
             mode="min",
-            save_best_only=True,
+            save_best_only=False,
         )
 
         print("Started training")
-        # run training
         model.fit(
-            dataset,
+            preprocessed_dataset,
             batch_size=batch_size,
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
-                keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv")
+                keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv"),
+                CustomCallback(checkpoint_path, 1, 20)
             ],
         )
         print("Completed training")
