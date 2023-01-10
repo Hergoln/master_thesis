@@ -1,6 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
+from .dictionary_control import convert_back_to_code, fill_vocabulary
+
+def format_output(sample):
+  return ' '.join(str(element) for element in sample)
 
 class CustomCallback(keras.callbacks.Callback):
 
@@ -9,6 +13,7 @@ class CustomCallback(keras.callbacks.Callback):
     self.path = path
     self.samples_num = samples_num
     self.diffusion_steps = diffusion_steps
+    fill_vocabulary()
 
   def on_train_begin(self, logs=None):
     pass
@@ -22,15 +27,16 @@ class CustomCallback(keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs=None):
     samples, denormalized = self.model.generate(self.samples_num, self.diffusion_steps)
     samples = samples.numpy()
-    denormalized = denormalized.numpy()
+    # denormalized = denormalized.numpy()
     for counter in range(self.samples_num):
       epoch = epoch + 1
       out = eval(f"f'{self.path}'")
-      with open(f"{out}_result_tokens_{counter}.txt", 'w') as textFileHandler, open(f"{out}_result_vals_{counter}.txt", 'w') as valFileHandler:
+      with open(f"{out}_result_code_{counter}.txt", 'w') as codeFileHandler, open(f"{out}_result_tokens_{counter}.txt", 'w') as textFileHandler, open(f"{out}_result_vals_{counter}.txt", 'w') as valFileHandler:
         for val in samples[counter]:
           valFileHandler.write(str(int(val)) + ' ')
         for val in denormalized[counter]:
           textFileHandler.write(str(val) + '\n')
+        codeFileHandler.write(format_output(convert_back_to_code(denormalized[counter])) + '\n')
 
   def on_test_begin(self, logs=None):
     pass

@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 def parse():
     parser = argparse.ArgumentParser(description='Master thesis')
     parser.add_argument('--dev', action='store_true', help='Development mode. Only a fraction of dataset is loaded and number of epochs is minimized')
+    parser.add_argument('--epochs', type=int, help='Number of epochs')
     return parser.parse_args()
 
 def main():
@@ -42,7 +43,7 @@ def main():
         max_size = batch_size
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size]
     else:
-        num_epochs = 4096
+        num_epochs = 4096 if args.epochs is None else args.epochs
         max_size = None
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size * (len(dataset)//batch_size)]
 
@@ -60,12 +61,9 @@ def main():
         model = DiffusionModel(TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, min_signal_rate, ema)
         print("Model created")
 
-        preprocessed_dataset = rescale(dataset, DICTIONARY_SIZE)
-        print("Dataset preprocessed")
-
         model.compile(
-            optimizer = keras.optimizers.experimental.AdamW(
-                learning_rate=learning_rate, weight_decay=weight_decay
+            optimizer = keras.optimizers.experimental.Adam(
+                learning_rate=learning_rate
             ),
             # mse loss is pretty good for my model because it represents 
             # how close is prediction of my model to original sample
@@ -89,15 +87,21 @@ def main():
             save_best_only=False,
         )
 
+        dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
+        print(f"min: {tf.reduce_min(dataset)}")
+        print(f"max: {tf.reduce_max(dataset)}")
+
+        model.normalizer.adapt(dataset)
+
         print("Started training")
         model.fit(
-            preprocessed_dataset,
+            dataset,
             batch_size=batch_size,
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
                 keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv"),
-                CustomCallback(checkpoint_path, 1, 20)
+                CustomCallback(checkpoint_path, 1, 100)
             ],
         )
         print("Completed training")
