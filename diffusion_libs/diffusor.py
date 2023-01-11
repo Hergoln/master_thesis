@@ -10,17 +10,17 @@ def isScaled(dataframe):
     return True
 
 def rescale(dataframe, dic_size):
-  return (dataframe * 2 / (dic_size - 1)) - 1
+  return (dataframe / (dic_size - 1))
 
 def scale(dataframe, dic_size):
-  return (dataframe + 1) * (dic_size - 1) / 2
+  return (dataframe) * (dic_size - 1)
 
 def scale_dataset_down(dataset, dic_size):
-    l = lambda x: (x * 2 / dic_size) - 1
+    l = lambda x: (x / dic_size)
     return np.array(list(map(l, dataset)))
 
 def scale_dataset(dataframe, dic_size):
-    l = lambda x: (x + 1) * (dic_size - 1) / 2
+    l = lambda x: (x) * (dic_size - 1)
     return np.array(list(map(l, dataframe)))
 
 class DiffusionModel(keras.Model):
@@ -52,10 +52,11 @@ class DiffusionModel(keras.Model):
 
     def denormalize(self, samples):
         # convert the pixel values back to 0-1 range
-        print(f"mean: {self.normalizer.mean}")
-        print(f"variance: {self.normalizer.variance}")
+        # print(f"mean: {self.normalizer.mean}")
+        # print(f"variance: {self.normalizer.variance}")
         samples = self.normalizer.mean + samples * self.normalizer.variance**0.5
-        return tf.clip_by_value(samples, 0.0, 1.0)
+        # return tf.clip_by_value(samples, 0.0, 1.0)
+        return samples
 
     def diffusion_schedule(self, diffusion_times):
         # diffusion times -> angles
@@ -119,11 +120,7 @@ class DiffusionModel(keras.Model):
         initial_noise = tf.random.normal(shape=(num_samples, self.tokens_capacity))
         generated_sample = self.reverse_diffusion(initial_noise, diffusion_steps)
         denormalized_generated_sample = self.denormalize(generated_sample)
-        # denormalized_generated_sample = scale_dataset(denormalized_generated_sample, self.dictionary_size)
-
-        # denormalized_generated_sample = tf.clip_by_value(tf.math.divide(generated_sample + self.dictionary_size, 2), 0.0, (self.dictionary_size - 1))
-
-        return generated_sample, denormalized_generated_sample
+        return generated_sample, tf.math.abs(denormalized_generated_sample)
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises

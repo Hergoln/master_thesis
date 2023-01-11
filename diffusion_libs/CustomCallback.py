@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 from .dictionary_control import convert_back_to_code, fill_vocabulary
+import os
 
 def format_output(sample):
   return ' '.join(str(element) for element in sample)
@@ -28,12 +29,14 @@ class CustomCallback(keras.callbacks.Callback):
     samples, denormalized = self.model.generate(self.samples_num, self.diffusion_steps)
     samples = samples.numpy()
     # denormalized = denormalized.numpy()
+    out = eval(f"f'{self.path}'")
+    if not os.path.exists(out):
+      return
     for counter in range(self.samples_num):
       epoch = epoch + 1
-      out = eval(f"f'{self.path}'")
-      with open(f"{out}_result_code_{counter}.txt", 'w') as codeFileHandler, open(f"{out}_result_tokens_{counter}.txt", 'w') as textFileHandler, open(f"{out}_result_vals_{counter}.txt", 'w') as valFileHandler:
+      with open(f"{out}\\model_result_code_{counter}.txt", 'w') as codeFileHandler, open(f"{out}\\model_result_tokens_{counter}.txt", 'w') as textFileHandler, open(f"{out}\\model_result_vals_{counter}.txt", 'w') as valFileHandler:
         for val in samples[counter]:
-          valFileHandler.write(str(int(val)) + ' ')
+          valFileHandler.write(str(val) + ' ')
         for val in denormalized[counter]:
           textFileHandler.write(str(val) + '\n')
         codeFileHandler.write(format_output(convert_back_to_code(denormalized[counter])) + '\n')

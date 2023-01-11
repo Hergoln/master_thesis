@@ -76,7 +76,7 @@ def main():
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        
+        checkpoint_base_path = "checkpoints\diffusion_model\cp-{epoch:04d}"
         checkpoint_path = "checkpoints\diffusion_model\cp-{epoch:04d}\model"
         
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -101,7 +101,7 @@ def main():
             callbacks=[
                 checkpoint_callback,
                 keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv"),
-                CustomCallback(checkpoint_path, 1, 100)
+                CustomCallback(checkpoint_base_path, 1, 100)
             ],
         )
         print("Completed training")
