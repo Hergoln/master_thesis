@@ -55,7 +55,10 @@ def main():
         print("Loaded dataset")
         print(f"Dataset shape: {dataset.shape}")
 
-        network = get_network(TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, embedding_dims)
+
+        widths = [32, 64, 96, 128]
+        block_depth = 2
+        network = get_network(TOKENS_CAPACITY, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims)
         print("Network created")
 
         model = DiffusionModel(TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, min_signal_rate, ema)
