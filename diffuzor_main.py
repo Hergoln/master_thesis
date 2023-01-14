@@ -1,4 +1,5 @@
 from diffusion_libs import *
+import tensorflow as tf
 from tensorflow import keras
 
 import argparse
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 def parse():
     parser = argparse.ArgumentParser(description='Master thesis')
     parser.add_argument('--dev', action='store_true', help='Development mode. Only a fraction of dataset is loaded and number of epochs is minimized')
+    parser.add_argument('--epochs', type=int, help='Number of epochs')
     return parser.parse_args()
 
 def main():
@@ -41,7 +43,7 @@ def main():
         max_size = batch_size
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size]
     else:
-        num_epochs = 256
+        num_epochs = 4096 if args.epochs is None else args.epochs
         max_size = None
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size * (len(dataset)//batch_size)]
 
@@ -53,42 +55,57 @@ def main():
         print("Loaded dataset")
         print(f"Dataset shape: {dataset.shape}")
 
-        network = get_network(TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, embedding_dims)
+
+        widths = [32, 64, 96, 128]
+        block_depth = 2
+        network = get_network(TOKENS_CAPACITY, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims)
         print("Network created")
+        network.summary()
 
         model = DiffusionModel(TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, min_signal_rate, ema)
         print("Model created")
 
         model.compile(
-            optimizer = keras.optimizers.experimental.AdamW(
-                learning_rate=learning_rate, weight_decay=weight_decay
+            optimizer = keras.optimizers.experimental.Adam(
+                learning_rate=learning_rate
             ),
             # mse loss is pretty good for my model because it represents 
             # how close is prediction of my model to original sample
             # it represents "closeness of predicted code to original"
+            # loss function cannot be simply MAE because most of samples
+            # are EMPTY, this means full of EMPTY symbols thus anything
+            # that we get will be compared to mostly EMPTY vector. I think I
+            # have to use maybe attention mechanism or something that addresses
+            # this issue
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        model.summary()
-
-        checkpoint_path = "checkpoints\\diffusion_model\\cp-{epoch:04d}\\"
+        checkpoint_base_path = "checkpoints\diffusion_model\cp-{epoch:04d}"
+        checkpoint_path = "checkpoints\diffusion_model\cp-{epoch:04d}\model"
+        
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_path,
+            checkpoint_path,
             save_weights_only=True,
             monitor="i_loss",
             mode="min",
-            save_best_only=True,
+            save_best_only=False,
         )
 
+        dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
+        print(f"min: {tf.reduce_min(dataset)}")
+        print(f"max: {tf.reduce_max(dataset)}")
+
+        model.normalizer.adapt(dataset)
+
         print("Started training")
-        # run training
         model.fit(
             dataset,
             batch_size=batch_size,
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
-                keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv")
+                keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv"),
+                CustomCallback(checkpoint_base_path, 1, 100)
             ],
         )
         print("Completed training")

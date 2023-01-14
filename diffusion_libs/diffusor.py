@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
+from keras import layers
 import numpy as np
 
 def isScaled(dataframe):
@@ -9,13 +10,17 @@ def isScaled(dataframe):
     return True
 
 def rescale(dataframe, dic_size):
-  return (dataframe * 2 / (dic_size - 1)) - 1
+  return (dataframe / (dic_size - 1))
 
 def scale(dataframe, dic_size):
-  return (dataframe + 1) * (dic_size - 1) / 2
+  return (dataframe) * (dic_size - 1)
+
+def scale_dataset_down(dataset, dic_size):
+    l = lambda x: (x / dic_size)
+    return np.array(list(map(l, dataset)))
 
 def scale_dataset(dataframe, dic_size):
-    l = lambda x: (x + 1) * (dic_size - 1) / 2
+    l = lambda x: (x) * (dic_size - 1)
     return np.array(list(map(l, dataframe)))
 
 class DiffusionModel(keras.Model):
@@ -33,6 +38,7 @@ class DiffusionModel(keras.Model):
         self.min_signal_rate = min_signal_rate
         self.ema = ema
         self.ema_network = keras.models.clone_model(self.network)
+        self.normalizer = layers.Normalization()
 
     def compile(self, **kwargs):
         super().compile(**kwargs)
@@ -44,13 +50,13 @@ class DiffusionModel(keras.Model):
     def metrics(self):
         return [self.noise_loss_tracker, self.sample_loss_tracker]
 
-    def normalize(self, samples):
-        return tf.math.divide(samples * 2, (self.dictionary_size - 1)) - 1
-
     def denormalize(self, samples):
-        vals = tf.math.divide((samples + 1) * (self.dictionary_size - 1), 2)
-
-        return tf.clip_by_value(vals, 0.0, (self.dictionary_size - 1))
+        # convert the pixel values back to 0-1 range
+        # print(f"mean: {self.normalizer.mean}")
+        # print(f"variance: {self.normalizer.variance}")
+        samples = self.normalizer.mean + samples * self.normalizer.variance**0.5
+        # return tf.clip_by_value(samples, 0.0, 1.0)
+        return samples
 
     def diffusion_schedule(self, diffusion_times):
         # diffusion times -> angles
@@ -113,13 +119,14 @@ class DiffusionModel(keras.Model):
         # Generate sample from complete noise
         initial_noise = tf.random.normal(shape=(num_samples, self.tokens_capacity))
         generated_sample = self.reverse_diffusion(initial_noise, diffusion_steps)
-        generated_sample = self.denormalize(generated_sample)
-        return generated_sample
+        denormalized_generated_sample = self.denormalize(generated_sample)
+        return generated_sample, tf.math.abs(denormalized_generated_sample)
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises
         # TODO: my normalization does not create standard deviation value range though
-        samples = self.normalize(samples)
+        samples = self.normalizer(samples, training=True)
+        # tf.print(samples[0])
         noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
         # sample uniform random diffusion times
@@ -129,7 +136,9 @@ class DiffusionModel(keras.Model):
         noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
         # mix the samples with noises accordingly
         noisy_samples = signal_rates * samples + noise_rates * noises
-
+        # tf.print(tf.reduce_min(noisy_samples))
+        # tf.print(tf.reduce_max(noisy_samples))
+        # tf.print(noisy_samples)
         with tf.GradientTape() as tape:
             # train the network to separate noisy samples to their components
             pred_noises, pred_samples = self.denoise(
@@ -138,9 +147,13 @@ class DiffusionModel(keras.Model):
 
             noise_loss = self.loss(noises, pred_noises)  # used for training
             sample_loss = self.loss(samples, pred_samples)  # only used as metric
+            # print("noise_loss")
+            # tf.print(noise_loss)
+            # print("sample_loss")
+            # tf.print(sample_loss)
 
-        gradients = tape.gradient(noise_loss, self.network.trainable_weights)
-        self.optimizer.apply_gradients(zip(gradients, self.network.trainable_weights))
+            gradients = tape.gradient(noise_loss, self.network.trainable_weights)
+            self.optimizer.apply_gradients(zip(gradients, self.network.trainable_weights))
 
         self.noise_loss_tracker.update_state(noise_loss)
         self.sample_loss_tracker.update_state(sample_loss)
@@ -152,7 +165,7 @@ class DiffusionModel(keras.Model):
         return {m.name: m.result() for m in self.metrics}
 
     def test_step(self, samples):
-        samples = self.normalize(samples)
+        samples = self.normalizer(samples, training=False)
         noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
         # sample uniform random diffusion times
