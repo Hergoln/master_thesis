@@ -60,6 +60,7 @@ def main():
         block_depth = 2
         network = get_network(TOKENS_CAPACITY, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims)
         print("Network created")
+        network.summary()
 
         model = DiffusionModel(TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, min_signal_rate, ema)
         print("Model created")
