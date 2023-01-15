@@ -3,3 +3,4 @@ from .files_management import load_dataset, split_files_functions
 from .diffusor import DiffusionModel, scale, rescale, isScaled, scale_dataset, scale_dataset_down
 from .network import get_network
 from .CustomCallback import CustomCallback
+from .utils import get_active_branch_name

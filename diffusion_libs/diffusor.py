@@ -68,6 +68,7 @@ class DiffusionModel(keras.Model):
         # angles -> signal and noise rates
         signal_rates = tf.cos(diffusion_angles)
         noise_rates = tf.sin(diffusion_angles)
+
         # note that their squared sum is always: sin^2(x) + cos^2(x) = 1
 
         return noise_rates, signal_rates
@@ -100,6 +101,9 @@ class DiffusionModel(keras.Model):
             # separate the current noisy sample to its components
             diffusion_times = tf.ones((num_samples)) - step * step_size
             noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+            signal_rates = tf.expand_dims(signal_rates, axis=1)
+            noise_rates = tf.expand_dims(noise_rates, axis=1)
+
             pred_noises, pred_samples = self.denoise(
                 noisy_samples, noise_rates, signal_rates, training=False
             )
@@ -108,6 +112,8 @@ class DiffusionModel(keras.Model):
             next_noise_rates, next_signal_rates = self.diffusion_schedule(
                 next_diffusion_times
             )
+            next_signal_rates = tf.expand_dims(next_signal_rates, axis=1)
+            next_noise_rates = tf.expand_dims(next_noise_rates, axis=1)
             next_noisy_samples = (
                 next_signal_rates * pred_samples + next_noise_rates * pred_noises
             )

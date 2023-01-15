@@ -15,6 +15,9 @@ def parse():
     return parser.parse_args()
 
 def main():
+
+    current_branch = get_active_branch_name()
+
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -28,14 +31,17 @@ def main():
     batch_size = 64
     ema = 0.999
     learning_rate = 1e-3
-    weight_decay = 1e-4
 
     # dictionary related
     DICTIONARY_SIZE = 246
     TOKENS_CAPACITY = 2048
 
+    widths = [32, 64, 96, 128]
+    block_depth = 2
+
     c_dir = "./data/JL/"
     parsed_dir = "./data/parsed/"
+    data_dir = f"./data/{current_branch}/parsed"
 
     args = parse()
     if args.dev:
@@ -55,14 +61,17 @@ def main():
         print("Loaded dataset")
         print(f"Dataset shape: {dataset.shape}")
 
-
-        widths = [32, 64, 96, 128]
-        block_depth = 2
-        network = get_network(TOKENS_CAPACITY, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims)
+        network = get_network(
+                TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, 
+                embedding_dims, widths=widths, block_depth=block_depth, name="simplest"
+            )
         print("Network created")
         network.summary()
 
-        model = DiffusionModel(TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, min_signal_rate, ema)
+        model = DiffusionModel(
+                TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, 
+                min_signal_rate, ema
+            )
         print("Model created")
 
         model.compile(
@@ -105,7 +114,7 @@ def main():
             callbacks=[
                 checkpoint_callback,
                 keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv"),
-                CustomCallback(checkpoint_base_path, 1, 100)
+                CustomCallback(checkpoint_base_path, 5, 100)
             ],
         )
         print("Completed training")
