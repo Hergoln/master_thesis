@@ -114,7 +114,7 @@ def main():
             callbacks=[
                 checkpoint_callback,
                 keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv"),
-                CustomCallback(checkpoint_base_path, 5, 100)
+                CustomCallback(checkpoint_base_path, 5, 100, converter=convert_back_to_code)
             ],
         )
         print("Completed training")

@@ -9,11 +9,12 @@ def format_output(sample):
 
 class CustomCallback(keras.callbacks.Callback):
 
-  def __init__(self, path, samples_num, diffusion_steps):
+  def __init__(self, path, samples_num, diffusion_steps, converter):
     super(CustomCallback, self).__init__()
     self.path = path
     self.samples_num = samples_num
     self.diffusion_steps = diffusion_steps
+    self.converter = converter
     fill_vocabulary()
 
   def on_train_begin(self, logs=None):
@@ -28,7 +29,7 @@ class CustomCallback(keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs=None):
     samples, denormalized = self.model.generate(self.samples_num, self.diffusion_steps)
     samples = samples.numpy()
-    # denormalized = denormalized.numpy()
+    denormalized = denormalized.numpy()
     out = eval(f"f'{self.path}'")
     if not os.path.exists(out):
       return
@@ -36,10 +37,10 @@ class CustomCallback(keras.callbacks.Callback):
       epoch = epoch + 1
       with open(f"{out}\\model_result_code_{counter}.txt", 'w') as codeFileHandler, open(f"{out}\\model_result_tokens_{counter}.txt", 'w') as textFileHandler, open(f"{out}\\model_result_vals_{counter}.txt", 'w') as valFileHandler:
         for val in samples[counter]:
-          valFileHandler.write(str(val) + ' ')
+          valFileHandler.write(str(val) + '\n')
         for val in denormalized[counter]:
           textFileHandler.write(str(val) + '\n')
-        codeFileHandler.write(format_output(convert_back_to_code(denormalized[counter])) + '\n')
+        codeFileHandler.write(format_output(self.converter(denormalized[counter])))
 
   def on_test_begin(self, logs=None):
     pass
