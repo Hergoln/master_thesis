@@ -5,16 +5,17 @@ from .dictionary_control import convert_back_to_code, fill_vocabulary
 import os
 
 def format_output(sample):
-  return ' '.join(str(element) for element in sample)
+  return '\n'.join(str(element) for element in sample)
 
 class CustomCallback(keras.callbacks.Callback):
 
-  def __init__(self, path, samples_num, diffusion_steps, converter):
+  def __init__(self, path, samples_num, diffusion_steps, converter, scaler):
     super(CustomCallback, self).__init__()
     self.path = path
     self.samples_num = samples_num
     self.diffusion_steps = diffusion_steps
     self.converter = converter
+    self.scaler = scaler
     fill_vocabulary()
 
   def on_train_begin(self, logs=None):
@@ -40,7 +41,9 @@ class CustomCallback(keras.callbacks.Callback):
           valFileHandler.write(str(val) + '\n')
         for val in denormalized[counter]:
           textFileHandler.write(str(val) + '\n')
-        codeFileHandler.write(format_output(self.converter(denormalized[counter])))
+        scaled_up = self.scaler(denormalized[counter])
+        converted = self.converter(scaled_up)
+        codeFileHandler.write(format_output(converted))
 
   def on_test_begin(self, logs=None):
     pass

@@ -16,7 +16,7 @@ def scale(dataframe, dic_size):
   return (dataframe) * (dic_size - 1)
 
 def scale_dataset_down(dataset, dic_size):
-    l = lambda x: (x / dic_size)
+    l = lambda x: (x / (dic_size - 1))
     return np.array(list(map(l, dataset)))
 
 def scale_dataset(dataframe, dic_size):
@@ -121,12 +121,13 @@ class DiffusionModel(keras.Model):
 
         return pred_samples
 
+    # generated values should be between 0 and 1, network should work better this way
     def generate(self, num_samples, diffusion_steps):
         # Generate sample from complete noise
         initial_noise = tf.random.normal(shape=(num_samples, self.tokens_capacity))
         generated_sample = self.reverse_diffusion(initial_noise, diffusion_steps)
         denormalized_generated_sample = self.denormalize(generated_sample)
-        return generated_sample, tf.math.abs(denormalized_generated_sample)
+        return generated_sample, tf.clip_by_value(tf.math.abs(denormalized_generated_sample), 0, 1)
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises
