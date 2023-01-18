@@ -16,7 +16,7 @@ def scale(dataframe, dic_size):
   return (dataframe) * (dic_size - 1)
 
 def scale_dataset_down(dataset, dic_size):
-    l = lambda x: (x / dic_size)
+    l = lambda x: (x / (dic_size - 1))
     return np.array(list(map(l, dataset)))
 
 def scale_dataset(dataframe, dic_size):
@@ -68,6 +68,7 @@ class DiffusionModel(keras.Model):
         # angles -> signal and noise rates
         signal_rates = tf.cos(diffusion_angles)
         noise_rates = tf.sin(diffusion_angles)
+
         # note that their squared sum is always: sin^2(x) + cos^2(x) = 1
 
         return noise_rates, signal_rates
@@ -100,6 +101,9 @@ class DiffusionModel(keras.Model):
             # separate the current noisy sample to its components
             diffusion_times = tf.ones((num_samples)) - step * step_size
             noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+            signal_rates = tf.expand_dims(signal_rates, axis=1)
+            noise_rates = tf.expand_dims(noise_rates, axis=1)
+
             pred_noises, pred_samples = self.denoise(
                 noisy_samples, noise_rates, signal_rates, training=False
             )
@@ -108,6 +112,8 @@ class DiffusionModel(keras.Model):
             next_noise_rates, next_signal_rates = self.diffusion_schedule(
                 next_diffusion_times
             )
+            next_signal_rates = tf.expand_dims(next_signal_rates, axis=1)
+            next_noise_rates = tf.expand_dims(next_noise_rates, axis=1)
             next_noisy_samples = (
                 next_signal_rates * pred_samples + next_noise_rates * pred_noises
             )
@@ -115,12 +121,13 @@ class DiffusionModel(keras.Model):
 
         return pred_samples
 
+    # generated values should be between 0 and 1, network should work better this way
     def generate(self, num_samples, diffusion_steps):
         # Generate sample from complete noise
         initial_noise = tf.random.normal(shape=(num_samples, self.tokens_capacity))
         generated_sample = self.reverse_diffusion(initial_noise, diffusion_steps)
         denormalized_generated_sample = self.denormalize(generated_sample)
-        return generated_sample, tf.math.abs(denormalized_generated_sample)
+        return generated_sample, tf.clip_by_value(tf.math.abs(denormalized_generated_sample), 0, 1)
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises

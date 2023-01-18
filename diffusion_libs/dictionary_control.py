@@ -1,3 +1,4 @@
+isFilled = False
 NUM_LIT = "NUM"
 STR_LIT = "STR"
 EMPTY = "EMPTY"
@@ -22,6 +23,11 @@ def loop_fill(type, capacity):
     vocabulary.append(type + str(i))
 
 def fill_vocabulary():
+  global isFilled
+  if isFilled:
+    print("Dictionary already filled")
+    return
+
   vocabulary.append(EMPTY)
   vocabulary.append(NUM_LIT)
   vocabulary.append(STR_LIT)
@@ -32,6 +38,7 @@ def fill_vocabulary():
   loop_fill("ID", 128)
   loop_fill("TP", 32)
   loop_fill("RF", 16)
+  isFilled = True
 
 def val_to_word(val):
   return vocabulary[int(val)]

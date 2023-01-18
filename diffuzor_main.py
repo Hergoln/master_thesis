@@ -1,4 +1,5 @@
 from diffusion_libs import *
+from samples_generators import vocabulary, decode_sample_into_text, decode_sample
 import tensorflow as tf
 from tensorflow import keras
 
@@ -15,6 +16,9 @@ def parse():
     return parser.parse_args()
 
 def main():
+
+    current_branch = get_active_branch_name()
+
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -25,17 +29,20 @@ def main():
     embedding_min_frequency = 1.0
 
     # optimization
-    batch_size = 64
+    batch_size = 16
     ema = 0.999
     learning_rate = 1e-3
-    weight_decay = 1e-4
 
     # dictionary related
-    DICTIONARY_SIZE = 246
-    TOKENS_CAPACITY = 2048
+    DICTIONARY_SIZE = 8 # 246
+    TOKENS_CAPACITY = 128 # 2048
+
+    widths = [32, 64, 96, 128]
+    block_depth = 2
 
     c_dir = "./data/JL/"
     parsed_dir = "./data/parsed/"
+    data_dir = f"./data/{current_branch}/"
 
     args = parse()
     if args.dev:
@@ -49,20 +56,23 @@ def main():
 
     try:
         print("Started loading dataset")
-        dataset, filenames = load_dataset(parsed_dir, max_size)
+        dataset, filenames = load_dataset(data_dir, max_size)
         # dataset size has to be a multiplication of batch_size
         dataset = dataset_trimmer(dataset, batch_size)
         print("Loaded dataset")
         print(f"Dataset shape: {dataset.shape}")
 
-
-        widths = [32, 64, 96, 128]
-        block_depth = 2
-        network = get_network(TOKENS_CAPACITY, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims)
+        network = get_network(
+                TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, 
+                embedding_dims, widths=widths, block_depth=block_depth, name="simplest"
+            )
         print("Network created")
         network.summary()
 
-        model = DiffusionModel(TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, min_signal_rate, ema)
+        model = DiffusionModel(
+                TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, 
+                min_signal_rate, ema
+            )
         print("Model created")
 
         model.compile(
@@ -80,8 +90,8 @@ def main():
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        checkpoint_base_path = "checkpoints\diffusion_model\cp-{epoch:04d}"
-        checkpoint_path = "checkpoints\diffusion_model\cp-{epoch:04d}\model"
+        checkpoint_base_path = "checkpoints\simplest_language_model\cp-{epoch:04d}"
+        checkpoint_path = "checkpoints\simplest_language_model\cp-{epoch:04d}\model"
         
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             checkpoint_path,
@@ -90,6 +100,9 @@ def main():
             mode="min",
             save_best_only=False,
         )
+
+        scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
+        sample_generator_callback = CustomCallback(checkpoint_base_path, 5, 100, converter=decode_sample, scaler=scaler_up)
 
         dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
         print(f"min: {tf.reduce_min(dataset)}")
@@ -104,8 +117,8 @@ def main():
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
-                keras.callbacks.CSVLogger(f"checkpoints\\diffusion_model\\history.csv"),
-                CustomCallback(checkpoint_base_path, 1, 100)
+                keras.callbacks.CSVLogger(f"checkpoints\\simplest_language_model\\history.csv"),
+                sample_generator_callback
             ],
         )
         print("Completed training")

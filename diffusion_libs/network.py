@@ -17,25 +17,31 @@ def sinusoidal_embedding(x, embedding_min_frequency, embedding_max_frequency, em
         [tf.sin(angular_speeds * x), tf.cos(angular_speeds * x)], axis=1
     )
     return embeddings
-  
-# def get_network(tokens_capacity, embedding_min_frequency, embedding_max_frequency, embedding_dims):
-#     noisy_images = keras.Input(shape=(tokens_capacity))
-#     noise_variances = keras.Input(shape=(1))
 
-#     emb = lambda x: sinusoidal_embedding(x, embedding_min_frequency, embedding_max_frequency, embedding_dims)
-#     e = layers.Lambda(emb)(noise_variances)
+def get_network(tokens_capacity, embedding_min_frequency, embedding_max_frequency, embedding_dims, widths=[32, 64], block_depth=2, name=None):
+    if name == "simplest":
+        return get_network_simplest(tokens_capacity, embedding_min_frequency, embedding_max_frequency, embedding_dims)
+    
+    return get_network_full(tokens_capacity, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims)
 
-#     x = layers.Dense(1024)(noisy_images)
-#     x = layers.Concatenate()([x, e])
-#     x = layers.Dense(512, name="dense01")(x)
-#     x = layers.Dense(1024, name="dense02", activation=keras.activations.relu)(x)
-#     x = layers.Dense(2048, name="dense03", activation=keras.activations.relu)(x)
-#     x = layers.Dense(2048, name="last_dense")(x)
+def get_network_simplest(tokens_capacity, embedding_min_frequency, embedding_max_frequency, embedding_dims):
+    noisy_images = keras.Input(shape=(tokens_capacity))
+    noise_variances = keras.Input(shape=(1))
 
-#     return keras.Model([noisy_images, noise_variances], x, name="simple_net")
+    emb = lambda x: sinusoidal_embedding(x, embedding_min_frequency, embedding_max_frequency, embedding_dims)
+    e = layers.Lambda(emb)(noise_variances)
+
+    x = layers.Dense(1024)(noisy_images)
+    x = layers.Concatenate()([x, e])
+    x = layers.Dense(512, name="dense01")(x)
+    x = layers.Dense(1024, name="dense02", activation=keras.activations.relu)(x)
+    x = layers.Dense(2048, name="dense03", activation=keras.activations.relu)(x)
+    x = layers.Dense(tokens_capacity, name="last_dense")(x)
+
+    return keras.Model([noisy_images, noise_variances], x, name="simple_net")
 
 
-def get_network(tokens_capacity, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims):
+def get_network_full(tokens_capacity, widths, block_depth, embedding_min_frequency, embedding_max_frequency, embedding_dims):
     noisy_images = keras.Input(shape=(tokens_capacity))
     noise_variances = keras.Input(shape=(1))
 
@@ -55,7 +61,7 @@ def get_network(tokens_capacity, widths, block_depth, embedding_min_frequency, e
     for width in reversed(widths[:-1]):
         x = UpBlock(width, block_depth)([x, skips])
 
-    x = layers.Dense(2048, kernel_initializer="zeros")(x)
+    x = layers.Dense(tokens_capacity, kernel_initializer="zeros")(x)
 
     return keras.Model([noisy_images, noise_variances], x, name="residual_unet")
 
