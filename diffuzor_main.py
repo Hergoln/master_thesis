@@ -1,5 +1,5 @@
 from diffusion_libs import *
-from samples_generators import vocabulary, decode_sample_into_text, decode_sample
+from samples_generators import sql_simple_decode_sample
 import tensorflow as tf
 from tensorflow import keras
 
@@ -16,9 +16,6 @@ def parse():
     return parser.parse_args()
 
 def main():
-
-    current_branch = get_active_branch_name()
-
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -41,8 +38,7 @@ def main():
     block_depth = 2
 
     c_dir = "./data/JL/"
-    parsed_dir = "./data/parsed/"
-    data_dir = f"./data/{current_branch}/"
+    data_dir = f"./data/parsed/"
 
     args = parse()
     if args.dev:
@@ -79,19 +75,11 @@ def main():
             optimizer = keras.optimizers.experimental.Adam(
                 learning_rate=learning_rate
             ),
-            # mse loss is pretty good for my model because it represents 
-            # how close is prediction of my model to original sample
-            # it represents "closeness of predicted code to original"
-            # loss function cannot be simply MAE because most of samples
-            # are EMPTY, this means full of EMPTY symbols thus anything
-            # that we get will be compared to mostly EMPTY vector. I think I
-            # have to use maybe attention mechanism or something that addresses
-            # this issue
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        checkpoint_base_path = "checkpoints\simplest_language_model\cp-{epoch:04d}"
-        checkpoint_path = "checkpoints\simplest_language_model\cp-{epoch:04d}\model"
+        checkpoint_base_path = "checkpoints\sql_simple_language_model\cp-{epoch:04d}"
+        checkpoint_path = "checkpoints\sql_simple_language_model\cp-{epoch:04d}\model"
         
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             checkpoint_path,
@@ -102,7 +90,7 @@ def main():
         )
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
-        sample_generator_callback = CustomCallback(checkpoint_base_path, 5, 100, converter=decode_sample, scaler=scaler_up)
+        sample_generator_callback = SaveSamplesCallback(checkpoint_base_path, 5, 100, converter=sql_simple_decode_sample, scaler=scaler_up)
 
         dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
         print(f"min: {tf.reduce_min(dataset)}")
@@ -117,7 +105,7 @@ def main():
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
-                keras.callbacks.CSVLogger(f"checkpoints\\simplest_language_model\\history.csv"),
+                keras.callbacks.CSVLogger(f"checkpoints\\sql_simple_language_model\\history.csv"),
                 sample_generator_callback
             ],
         )
