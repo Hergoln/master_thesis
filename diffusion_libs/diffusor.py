@@ -51,11 +51,7 @@ class DiffusionModel(keras.Model):
         return [self.noise_loss_tracker, self.sample_loss_tracker]
 
     def denormalize(self, samples):
-        # convert the pixel values back to 0-1 range
-        # print(f"mean: {self.normalizer.mean}")
-        # print(f"variance: {self.normalizer.variance}")
         samples = self.normalizer.mean + samples * self.normalizer.variance**0.5
-        # return tf.clip_by_value(samples, 0.0, 1.0)
         return samples
 
     def diffusion_schedule(self, diffusion_times):
@@ -131,9 +127,7 @@ class DiffusionModel(keras.Model):
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises
-        # TODO: my normalization does not create standard deviation value range though
         samples = self.normalizer(samples, training=True)
-        # tf.print(samples[0])
         noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
         # sample uniform random diffusion times
@@ -143,9 +137,6 @@ class DiffusionModel(keras.Model):
         noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
         # mix the samples with noises accordingly
         noisy_samples = signal_rates * samples + noise_rates * noises
-        # tf.print(tf.reduce_min(noisy_samples))
-        # tf.print(tf.reduce_max(noisy_samples))
-        # tf.print(noisy_samples)
         with tf.GradientTape() as tape:
             # train the network to separate noisy samples to their components
             pred_noises, pred_samples = self.denoise(
@@ -154,10 +145,6 @@ class DiffusionModel(keras.Model):
 
             noise_loss = self.loss(noises, pred_noises)  # used for training
             sample_loss = self.loss(samples, pred_samples)  # only used as metric
-            # print("noise_loss")
-            # tf.print(noise_loss)
-            # print("sample_loss")
-            # tf.print(sample_loss)
 
             gradients = tape.gradient(noise_loss, self.network.trainable_weights)
             self.optimizer.apply_gradients(zip(gradients, self.network.trainable_weights))

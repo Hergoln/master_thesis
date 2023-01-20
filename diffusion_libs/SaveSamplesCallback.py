@@ -7,10 +7,10 @@ import os
 def format_output(sample):
   return '\n'.join(str(element) for element in sample)
 
-class CustomCallback(keras.callbacks.Callback):
+class SaveSamplesCallback(keras.callbacks.Callback):
 
   def __init__(self, path, samples_num, diffusion_steps, converter, scaler):
-    super(CustomCallback, self).__init__()
+    super(SaveSamplesCallback, self).__init__()
     self.path = path
     self.samples_num = samples_num
     self.diffusion_steps = diffusion_steps
