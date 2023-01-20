@@ -31,14 +31,14 @@ def main():
     learning_rate = 1e-3
 
     # dictionary related
-    DICTIONARY_SIZE = 8 # 246
-    TOKENS_CAPACITY = 128 # 2048
+    DICTIONARY_SIZE = 23
+    TOKENS_CAPACITY = 140
 
     widths = [32, 64, 96, 128]
     block_depth = 2
 
     c_dir = "./data/JL/"
-    data_dir = f"./data/parsed/"
+    data_dir = f"./data/sql_simple/"
 
     args = parse()
     if args.dev:
@@ -60,7 +60,7 @@ def main():
 
         network = get_network(
                 TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, 
-                embedding_dims, widths=widths, block_depth=block_depth, name="simplest"
+                embedding_dims, widths=widths, block_depth=block_depth, name="simplest" # probably will change it later
             )
         print("Network created")
         network.summary()
