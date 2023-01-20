@@ -1,1 +1,2 @@
 from .simple_langauge_samples_generator import sl_generate_samples, sl_decode_sample_into_text, sl_vocabulary, sl_decode_sample
+from .sql_simple_samples_generator import sql_simple_decode_sample, sql_simple_decode_sample_into_text

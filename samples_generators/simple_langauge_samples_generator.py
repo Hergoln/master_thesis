@@ -25,4 +25,4 @@ def sl_decode_sample(sample):
   return [sl_vocabulary[int(v + 0.5)] for v in sample]
 
 def sl_decode_sample_into_text(sample):
-  return " ".join([sl_vocabulary[v] for v in sample])
+  return " ".join([sl_vocabulary[int(v + 0.5)] for v in sample])
