@@ -90,7 +90,9 @@ def main():
         )
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
-        sample_generator_callback = SaveSamplesCallback(checkpoint_base_path, 5, 100, converter=sql_simple_decode_sample, scaler=scaler_up)
+        sample_generator_callback = SaveSamplesCallback(
+            checkpoint_base_path, 5, 100, converter=sql_simple_decode_sample, scaler=scaler_up,
+            history_path=f"checkpoints\\sql_simple_language_model\\history.csv")
 
         dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
         print(f"min: {tf.reduce_min(dataset)}")
@@ -105,7 +107,6 @@ def main():
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
-                keras.callbacks.CSVLogger(f"checkpoints\\sql_simple_language_model\\history.csv"),
                 sample_generator_callback
             ],
         )
