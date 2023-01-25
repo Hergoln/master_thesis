@@ -68,7 +68,7 @@ def gen_IN_conditions(in_cols):
 def gen_EXISTS_conditions(in_cols):
   global global_recursive_counter
   global_recursive_counter += 1
-  if global_recursive_counter > 10:
+  if global_recursive_counter > 8:
     return gen_LIKE_conditions(in_cols)
   q = []
   q.append('EXISTS')
@@ -93,7 +93,7 @@ def gen_LIKE_conditions(in_cols):
 
 
 def gen_condition(in_cols):
-  possible_conditions = [[0.3, gen_IN_conditions], [0.6, gen_LIKE_conditions], [1.0, gen_EXISTS_conditions]]
+  possible_conditions = [[0.1, gen_IN_conditions], [0.11, gen_LIKE_conditions], [1.0, gen_EXISTS_conditions]]
   rnJesus = random.random()
   for condition in possible_conditions:
     if rnJesus < condition[0]:
@@ -102,8 +102,6 @@ def gen_condition(in_cols):
 
 def gen_conditions(in_cols):
   q = []
-  if random.random() < 0.2:
-    return q
 
   q.append('WHERE')
   q += gen_condition(in_cols)
@@ -114,15 +112,17 @@ def sql_simple_gen_sample(max_len_of_samples=None):
   q, used_cols = gen_core()
   q += gen_conditions(used_cols)
   query = [sqlSDict[it] for it in q]
+  # print(len(query))
+  not_filled_query = [sqlSDict[it] for it in q]
   if max_len_of_samples is not None:
     empty_values = [sqlSDict['EMPTY'] for _ in range(max_len_of_samples - len(query))]
     query += empty_values
 
-  return query
+  return query, not_filled_query
 
 
 def sql_simple_generate_samples(num_of_samples, max_len_of_samples):
-  return np.asarray([sql_simple_gen_sample(max_len_of_samples) for _ in range(num_of_samples)])
+  return [sql_simple_gen_sample(max_len_of_samples) for _ in range(num_of_samples)]
 
 
 def check_max_length():

@@ -38,7 +38,7 @@ class DiffusionModel(keras.Model):
         self.min_signal_rate = min_signal_rate
         self.ema = ema
         self.ema_network = keras.models.clone_model(self.network)
-        self.normalizer = layers.Normalization()
+        self.normalizer = layers.Normalization() # shouldn't have axis=None cause normalization will be then strongly affected by mostly EMPTY samples
 
     def compile(self, **kwargs):
         super().compile(**kwargs)

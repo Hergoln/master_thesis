@@ -32,9 +32,9 @@ def main():
 
     # dictionary related
     DICTIONARY_SIZE = 23
-    TOKENS_CAPACITY = 140
+    TOKENS_CAPACITY = 128
 
-    widths = [32, 64, 96, 128]
+    widths = [64, 64, 96, 128]
     block_depth = 2
 
     c_dir = "./data/JL/"
@@ -60,7 +60,7 @@ def main():
 
         network = get_network(
                 TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, 
-                embedding_dims, widths=widths, block_depth=block_depth, name="simplest" # probably will change it later
+                embedding_dims, widths=widths, block_depth=block_depth, name="complicated"
             )
         print("Network created")
         network.summary()
@@ -99,7 +99,8 @@ def main():
         print(f"max: {tf.reduce_max(dataset)}")
 
         model.normalizer.adapt(dataset)
-
+        print(model.normalizer.mean)
+        print(model.normalizer.variance)
         print("Started training")
         model.fit(
             dataset,
