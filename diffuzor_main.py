@@ -2,6 +2,7 @@ from diffusion_libs import *
 from samples_generators import sql_simple_decode_sample
 import tensorflow as tf
 from tensorflow import keras
+import numpy as np
 
 import argparse
 
@@ -9,11 +10,28 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
+def resolve_normalization(compute, tokens_capacity, file, dataset):
+    if compute:
+        layer = keras.layers.Normalization()
+        layer.adapt(dataset)
+        np.save(file, layer.get_weights())
+        print("adaptet normalizer")
+    else:
+        n_w = np.load(file, allow_pickle=True)
+        print(n_w.shape)
+        layer = keras.layers.Normalization(mean=n_w[0], variance=n_w[1])
+        print("loaded normalizer")
+    layer.build((tokens_capacity))
+    return layer
+
+
 def parse():
     parser = argparse.ArgumentParser(description='Master thesis')
     parser.add_argument('--dev', action='store_true', help='Development mode. Only a fraction of dataset is loaded and number of epochs is minimized')
     parser.add_argument('--epochs', type=int, help='Number of epochs')
+    parser.add_argument('--compute_normalizer', action='store_true', help='Compute normalizer. If not set than will look for weight of normalizer.')
     return parser.parse_args()
+
 
 def main():
     # sampling
@@ -98,9 +116,7 @@ def main():
         print(f"min: {tf.reduce_min(dataset)}")
         print(f"max: {tf.reduce_max(dataset)}")
 
-        model.normalizer.adapt(dataset)
-        print(model.normalizer.mean)
-        print(model.normalizer.variance)
+        model.normalizer = resolve_normalization(model.normalizer, args.compute_normalizer, file="checkpoints\sql_simple_language_model\\normalizer_weights.npy", dataset=dataset)
         print("Started training")
         model.fit(
             dataset,

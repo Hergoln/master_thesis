@@ -112,7 +112,6 @@ def sql_simple_gen_sample(max_len_of_samples=None):
   q, used_cols = gen_core()
   q += gen_conditions(used_cols)
   query = [sqlSDict[it] for it in q]
-  # print(len(query))
   not_filled_query = [sqlSDict[it] for it in q]
   if max_len_of_samples is not None:
     empty_values = [sqlSDict['EMPTY'] for _ in range(max_len_of_samples - len(query))]
