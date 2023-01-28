@@ -1,7 +1,8 @@
 from diffusion_libs import *
-from samples_generators import vocabulary, decode_sample_into_text, decode_sample
+from samples_generators import sql_simple_decode_sample
 import tensorflow as tf
 from tensorflow import keras
+import numpy as np
 
 import argparse
 
@@ -9,16 +10,30 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
+def resolve_normalization(compute, tokens_capacity, file, dataset):
+    if compute:
+        layer = keras.layers.Normalization()
+        layer.adapt(dataset)
+        np.save(file, layer.get_weights())
+        print("adaptet normalizer")
+    else:
+        n_w = np.load(file, allow_pickle=True)
+        print(n_w.shape)
+        layer = keras.layers.Normalization(mean=n_w[0], variance=n_w[1])
+        print("loaded normalizer")
+    layer.build((tokens_capacity))
+    return layer
+
+
 def parse():
     parser = argparse.ArgumentParser(description='Master thesis')
     parser.add_argument('--dev', action='store_true', help='Development mode. Only a fraction of dataset is loaded and number of epochs is minimized')
     parser.add_argument('--epochs', type=int, help='Number of epochs')
+    parser.add_argument('--compute_normalizer', action='store_true', help='Compute normalizer. If not set than will look for weight of normalizer.')
     return parser.parse_args()
 
+
 def main():
-
-    current_branch = get_active_branch_name()
-
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -34,15 +49,14 @@ def main():
     learning_rate = 1e-3
 
     # dictionary related
-    DICTIONARY_SIZE = 8 # 246
-    TOKENS_CAPACITY = 128 # 2048
+    DICTIONARY_SIZE = 23
+    TOKENS_CAPACITY = 128
 
-    widths = [32, 64, 96, 128]
+    widths = [64, 64, 96, 128]
     block_depth = 2
 
     c_dir = "./data/JL/"
-    parsed_dir = "./data/parsed/"
-    data_dir = f"./data/{current_branch}/"
+    data_dir = f"./data/sql_simple/"
 
     args = parse()
     if args.dev:
@@ -64,7 +78,7 @@ def main():
 
         network = get_network(
                 TOKENS_CAPACITY, embedding_min_frequency, embedding_max_frequency, 
-                embedding_dims, widths=widths, block_depth=block_depth, name="simplest"
+                embedding_dims, widths=widths, block_depth=block_depth, name="complicated"
             )
         print("Network created")
         network.summary()
@@ -79,19 +93,11 @@ def main():
             optimizer = keras.optimizers.experimental.Adam(
                 learning_rate=learning_rate
             ),
-            # mse loss is pretty good for my model because it represents 
-            # how close is prediction of my model to original sample
-            # it represents "closeness of predicted code to original"
-            # loss function cannot be simply MAE because most of samples
-            # are EMPTY, this means full of EMPTY symbols thus anything
-            # that we get will be compared to mostly EMPTY vector. I think I
-            # have to use maybe attention mechanism or something that addresses
-            # this issue
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        checkpoint_base_path = "checkpoints\simplest_language_model\cp-{epoch:04d}"
-        checkpoint_path = "checkpoints\simplest_language_model\cp-{epoch:04d}\model"
+        checkpoint_base_path = "checkpoints\sql_simple_language_model\cp-{epoch:04d}"
+        checkpoint_path = "checkpoints\sql_simple_language_model\cp-{epoch:04d}\model"
         
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             checkpoint_path,
@@ -102,14 +108,15 @@ def main():
         )
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
-        sample_generator_callback = CustomCallback(checkpoint_base_path, 5, 100, converter=decode_sample, scaler=scaler_up)
+        sample_generator_callback = SaveSamplesCallback(
+            checkpoint_base_path, 5, 100, converter=sql_simple_decode_sample, scaler=scaler_up,
+            history_path=f"checkpoints\\sql_simple_language_model\\history.csv")
 
         dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
         print(f"min: {tf.reduce_min(dataset)}")
         print(f"max: {tf.reduce_max(dataset)}")
 
-        model.normalizer.adapt(dataset)
-
+        model.normalizer = resolve_normalization(model.normalizer, args.compute_normalizer, file="checkpoints\sql_simple_language_model\\normalizer_weights.npy", dataset=dataset)
         print("Started training")
         model.fit(
             dataset,
@@ -117,7 +124,6 @@ def main():
             epochs=num_epochs,
             callbacks=[
                 checkpoint_callback,
-                keras.callbacks.CSVLogger(f"checkpoints\\simplest_language_model\\history.csv"),
                 sample_generator_callback
             ],
         )
