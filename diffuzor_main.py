@@ -1,5 +1,4 @@
 from diffusion_libs import *
-from samples_generators import sql_simple_decode_sample
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
@@ -14,8 +13,10 @@ def resolve_normalization(compute, tokens_capacity, file, dataset):
     if compute:
         layer = keras.layers.Normalization()
         layer.adapt(dataset)
-        np.save(file, layer.get_weights())
-        print("adaptet normalizer")
+        w = layer.get_weights()
+        w = np.asarray(w[:-1])
+        np.save(file, w)
+        print("adapted normalizer")
     else:
         n_w = np.load(file, allow_pickle=True)
         print(n_w.shape)
@@ -34,6 +35,7 @@ def parse():
 
 
 def main():
+    fill_vocabulary()
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -49,14 +51,14 @@ def main():
     learning_rate = 1e-3
 
     # dictionary related
-    DICTIONARY_SIZE = 23
-    TOKENS_CAPACITY = 128
+    DICTIONARY_SIZE = 246
+    TOKENS_CAPACITY = 2048
 
     widths = [64, 64, 96, 128]
     block_depth = 2
 
-    c_dir = "./data/JL/"
-    data_dir = f"./data/sql_simple/"
+    data_dir = f"./data/parsed/"
+    lang_base = f"checkpoints\c_lang"
 
     args = parse()
     if args.dev:
@@ -96,8 +98,8 @@ def main():
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        checkpoint_base_path = "checkpoints\sql_simple_language_model\cp-{epoch:04d}"
-        checkpoint_path = "checkpoints\sql_simple_language_model\cp-{epoch:04d}\model"
+        checkpoint_base_path = str(lang_base) + "\\cp-{epoch:04d}"
+        checkpoint_path = str(lang_base) + "\\cp-{epoch:04d}\\model"
         
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             checkpoint_path,
@@ -109,14 +111,18 @@ def main():
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
         sample_generator_callback = SaveSamplesCallback(
-            checkpoint_base_path, 5, 100, converter=sql_simple_decode_sample, scaler=scaler_up,
-            history_path=f"checkpoints\\sql_simple_language_model\\history.csv")
+            checkpoint_base_path, 5, 100, converter=convert_back_to_code, scaler=scaler_up,
+            history_path=f"{lang_base}\\history.csv"
+        )
 
         dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
-        print(f"min: {tf.reduce_min(dataset)}")
-        print(f"max: {tf.reduce_max(dataset)}")
+        print(f"dataset min: {tf.reduce_min(dataset)}")
+        print(f"dataset max: {tf.reduce_max(dataset)}")
 
-        model.normalizer = resolve_normalization(model.normalizer, args.compute_normalizer, file="checkpoints\sql_simple_language_model\\normalizer_weights.npy", dataset=dataset)
+        model.normalizer = resolve_normalization(
+            args.compute_normalizer, TOKENS_CAPACITY,
+            file=f"{lang_base}\\normalizer_weights.npy", dataset=dataset
+        )
         print("Started training")
         model.fit(
             dataset,
