@@ -16,7 +16,7 @@ def resolve_normalization(compute, tokens_capacity, file, dataset):
         w = layer.get_weights()
         w = np.asarray(w[:-1])
         np.save(file, w)
-        print("adapted normalizer")
+        print("adapted normalizer") 
     else:
         n_w = np.load(file, allow_pickle=True)
         print(n_w.shape)
@@ -31,6 +31,7 @@ def parse():
     parser.add_argument('--dev', action='store_true', help='Development mode. Only a fraction of dataset is loaded and number of epochs is minimized')
     parser.add_argument('--epochs', type=int, help='Number of epochs')
     parser.add_argument('--compute_normalizer', action='store_true', help='Compute normalizer. If not set than will look for weight of normalizer.')
+    parser.add_argument('--load', type=str, help='path to model')
     return parser.parse_args()
 
 
@@ -54,21 +55,26 @@ def main():
     DICTIONARY_SIZE = 246
     TOKENS_CAPACITY = 2048
 
-    widths = [64, 64, 96, 128]
+    widths = [8, 16, 32, 64, 96, 128, 512]
     block_depth = 2
 
     data_dir = f"./data/parsed/"
-    lang_base = f"checkpoints\c_lang"
+    lang_base = f"checkpoints/c_lang"
 
     args = parse()
     if args.dev:
-        num_epochs = 4
+        num_epochs = 1
         max_size = batch_size
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size]
     else:
         num_epochs = 4096 if args.epochs is None else args.epochs
         max_size = None
         dataset_trimmer = lambda dataset, batch_size: dataset[:batch_size * (len(dataset)//batch_size)]
+
+    if args.load:
+        is_loading = True
+    else:
+        is_loading = False
 
     try:
         print("Started loading dataset")
@@ -98,8 +104,8 @@ def main():
             loss = keras.losses.mean_absolute_error
         )
         print("Model compiled")
-        checkpoint_base_path = str(lang_base) + "\\cp-{epoch:04d}"
-        checkpoint_path = str(lang_base) + "\\cp-{epoch:04d}\\model"
+        checkpoint_base_path = str(lang_base) + "/cp-{epoch:04d}"
+        checkpoint_path = str(lang_base) + "/cp-{epoch:04d}/model"
         
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             checkpoint_path,
@@ -112,7 +118,7 @@ def main():
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
         sample_generator_callback = SaveSamplesCallback(
             checkpoint_base_path, 5, 100, converter=convert_back_to_code, scaler=scaler_up,
-            history_path=f"{lang_base}\\history.csv"
+            history_path=f"{lang_base}/history.csv", append_history=is_loading
         )
 
         dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
@@ -121,8 +127,13 @@ def main():
 
         model.normalizer = resolve_normalization(
             args.compute_normalizer, TOKENS_CAPACITY,
-            file=f"{lang_base}\\normalizer_weights.npy", dataset=dataset
+            file=f"{lang_base}/normalizer_weights.npy", dataset=dataset
         )
+
+        if is_loading:
+            print("loaded weights")
+            model.load_weights(args.load)
+
         print("Started training")
         model.fit(
             dataset,

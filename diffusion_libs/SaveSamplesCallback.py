@@ -9,7 +9,7 @@ def format_output(sample):
 
 class SaveSamplesCallback(keras.callbacks.Callback):
 
-  def __init__(self, path, samples_num, diffusion_steps, converter, scaler, history_path):
+  def __init__(self, path, samples_num, diffusion_steps, converter, scaler, history_path, append_history):
     super(SaveSamplesCallback, self).__init__()
     self.path = path
     self.samples_num = samples_num
@@ -19,9 +19,14 @@ class SaveSamplesCallback(keras.callbacks.Callback):
     self.history_path = history_path
     fill_vocabulary()
     self.is_history_file_created = False
+    self.append_history = append_history
 
   def createFileHeaders(self, headers):
-    with open(self.history_path, 'w') as historyFileHandler:
+    if self.append_history:
+      mode = "a"
+    else:
+      mode = "w"
+    with open(self.history_path, mode) as historyFileHandler:
       historyFileHandler.write(','.join(headers) + '\n')
 
   def on_train_begin(self, logs=None):
@@ -49,6 +54,7 @@ class SaveSamplesCallback(keras.callbacks.Callback):
     samples, denormalized = self.model.generate(self.samples_num, self.diffusion_steps)
     samples = samples.numpy()
     denormalized = denormalized.numpy()
+    epoch += 1
     out = eval(f"f'{self.path}'")
     with open(self.history_path, 'a') as historyFileHandler:
       historyFileHandler.write(self.filesLine(self.model, samples, epoch))
