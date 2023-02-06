@@ -49,13 +49,13 @@ def main():
     # optimization
     batch_size = 16
     ema = 0.999
-    learning_rate = 1e-3
+    learning_rate = 1e-5
 
     # dictionary related
-    DICTIONARY_SIZE = 246
+    DICTIONARY_SIZE = 246 # only issue is that it displays different value because of floats precision
     TOKENS_CAPACITY = 2048
 
-    widths = [8, 16, 32, 64, 96, 128, 512]
+    widths = [8, 16, 32, 128, 256, 1024]
     block_depth = 2
 
     data_dir = f"./data/parsed/"
