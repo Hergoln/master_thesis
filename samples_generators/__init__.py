@@ -1,2 +1,3 @@
 from .simple_langauge_samples_generator import sl_generate_samples, sl_decode_sample_into_text, sl_vocabulary, sl_decode_sample
 from .sql_simple_samples_generator import sql_simple_decode_sample, sql_simple_decode_sample_into_text
+from .simple_c_v1_lang_generator import fill_vocabulary_c_v1, vocabulary_c_v1, convert_back_to_code_c_v1
