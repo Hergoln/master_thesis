@@ -55,7 +55,7 @@ def main():
     DICTIONARY_SIZE = 246 # only issue is that it displays different value because of floats precision
     TOKENS_CAPACITY = 2048
 
-    widths = [8, 16, 32, 128, 256, 1024]
+    widths = [8, 16, 32, 1024]
     block_depth = 2
 
     data_dir = f"./data/parsed/"
@@ -133,6 +133,21 @@ def main():
         if is_loading:
             print("loaded weights")
             model.load_weights(args.load)
+
+        print("saving parameters")
+        with open(f"{lang_base}/params.txt", 'w') as fHandler:
+            fHandler.write("min_signal_rate = " + str(min_signal_rate) + "\n")
+            fHandler.write("max_signal_rate = " + str(max_signal_rate) + "\n")
+            fHandler.write("embedding_dims = " + str(embedding_dims) + "\n")
+            fHandler.write("embedding_max_frequency = " + str(embedding_max_frequency) + "\n")
+            fHandler.write("embedding_min_frequency = " + str(embedding_min_frequency) + "\n")
+            fHandler.write("batch_size = " + str(batch_size) + "\n")
+            fHandler.write("ema = " + str(ema) + "\n")
+            fHandler.write("learning_rate = " + str(learning_rate) + "\n")
+            fHandler.write("DICTIONARY_SIZE = " + str(DICTIONARY_SIZE) + "\n")
+            fHandler.write("TOKENS_CAPACITY = " + str(TOKENS_CAPACITY) + "\n")
+            fHandler.write("widths = " + str(widths) + "\n")
+            fHandler.write("block_depth = " + str(block_depth) + "\n")
 
         print("Started training")
         model.fit(
