@@ -41,7 +41,7 @@ def fill_vocabulary():
   isFilled = True
 
 def val_to_word(val):
-  return vocabulary[int(val)]
+  return vocabulary[val]
 
 def convert_back_to_code(vector):
-  return [val_to_word(v) for v in vector]
+  return [val_to_word(int(v + 0.5)) for v in vector]
