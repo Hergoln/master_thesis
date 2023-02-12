@@ -97,13 +97,14 @@ def main():
 
         dictionary = {el:idx for idx,el in enumerate(vocabulary_c_v1)}
         use_xy = False
+        dataset_for_normalization = dataset
         if args.errors_learning:
             remove_tokens_introducer = remove_token_and_shift_sample_randomized([";", "+", "-", "/", "="], 0.5, dictionary, TOKENS_CAPACITY)
             errorIntroducer = ErrorsIntroducer([remove_tokens_introducer])
             
             bugged_dataset = errorIntroducer.apply(dataset)
             dataset = np.asarray([bugged_dataset, dataset])
-            print(dataset.shape)
+            lang_base += "_fix_bug"
             use_xy = True
 
         model = DiffusionModel(
@@ -140,9 +141,10 @@ def main():
         print(f"dataset min: {tf.reduce_min(dataset)}")
         print(f"dataset max: {tf.reduce_max(dataset)}")
 
+        print(f"Normalized dataset shape: {dataset_for_normalization.shape}")
         model.normalizer = resolve_normalization(
             args.compute_normalizer, TOKENS_CAPACITY,
-            file=f"{lang_base}/normalizer_weights.npy", dataset=dataset
+            file=f"{lang_base}/normalizer_weights.npy", dataset=dataset_for_normalization
         )
 
         if is_loading:
