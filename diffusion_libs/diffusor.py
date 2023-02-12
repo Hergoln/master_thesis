@@ -26,7 +26,7 @@ def scale_dataset(dataframe, dic_size):
 class DiffusionModel(keras.Model):
     def __init__(
       self, tokens_capacity, dictionary_size, network, batch_size, 
-      max_signal_rate, min_signal_rate, ema, 
+      max_signal_rate, min_signal_rate, ema, use_xy
     ):
         super().__init__()
 
@@ -39,6 +39,7 @@ class DiffusionModel(keras.Model):
         self.ema = ema
         self.ema_network = keras.models.clone_model(self.network)
         self.normalizer = layers.Normalization() # shouldn't have axis=None cause normalization will be then strongly affected by mostly EMPTY samples
+        self.use_xy = use_xy
 
     def compile(self, **kwargs):
         super().compile(**kwargs)
@@ -127,7 +128,11 @@ class DiffusionModel(keras.Model):
 
     def train_step(self, samples):
         # normalize samples to have standard deviation of 1, like the noises
+        if self.use_xy:
+            x,y = samples
+            samples = x
         samples = self.normalizer(samples, training=True)
+
         noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
         # sample uniform random diffusion times
