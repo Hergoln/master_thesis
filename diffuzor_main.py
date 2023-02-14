@@ -56,7 +56,7 @@ def main():
     learning_rate = 1e-3
 
     # dictionary related
-    DICTIONARY_SIZE = 37 # only issue is that it displays different value because of floats precision
+    DICTIONARY_SIZE = 37
     TOKENS_CAPACITY = 256
 
     widths = [64, 64, 96, 128]
