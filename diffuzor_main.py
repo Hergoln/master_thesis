@@ -1,7 +1,9 @@
 from diffusion_libs import *
+from samples_generators import convert_back_to_code_c_v1, fill_vocabulary_c_v1, remove_token_and_shift_sample_randomized, ErrorsIntroducer, vocabulary_c_v1
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
+import tensorflow as tf
 
 import argparse
 
@@ -32,11 +34,13 @@ def parse():
     parser.add_argument('--epochs', type=int, help='Number of epochs')
     parser.add_argument('--compute_normalizer', action='store_true', help='Compute normalizer. If not set than will look for weight of normalizer.')
     parser.add_argument('--load', type=str, help='path to model')
+    parser.add_argument('--errors_learning', action='store_true', help='Is learning errors fix time. If yes, error introducer will be created and model will learn how to fix bugs')
     return parser.parse_args()
 
 
 def main():
     fill_vocabulary()
+    fill_vocabulary_c_v1()
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -49,17 +53,17 @@ def main():
     # optimization
     batch_size = 16
     ema = 0.999
-    learning_rate = 1e-5
+    learning_rate = 1e-3
 
     # dictionary related
-    DICTIONARY_SIZE = 246 # only issue is that it displays different value because of floats precision
-    TOKENS_CAPACITY = 2048
+    DICTIONARY_SIZE = 37
+    TOKENS_CAPACITY = 256
 
-    widths = [8, 16, 32, 1024]
+    widths = [64, 64, 96, 128]
     block_depth = 2
 
-    data_dir = f"./data/parsed/"
-    lang_base = f"checkpoints/c_lang"
+    data_dir = f"./data/simple_c_v1/"
+    lang_base = f"checkpoints/simple_c_v1"
 
     args = parse()
     if args.dev:
@@ -89,11 +93,23 @@ def main():
                 embedding_dims, widths=widths, block_depth=block_depth, name="complicated"
             )
         print("Network created")
-        network.summary()
+        # network.summary()
+
+        dictionary = {el:idx for idx,el in enumerate(vocabulary_c_v1)}
+        use_xy = False
+        dataset_for_normalization = dataset
+        if args.errors_learning:
+            remove_tokens_introducer = remove_token_and_shift_sample_randomized([";", "+", "-", "/", "="], 0.5, dictionary, TOKENS_CAPACITY)
+            errorIntroducer = ErrorsIntroducer([remove_tokens_introducer])
+            
+            bugged_dataset = errorIntroducer.apply(dataset)
+            dataset = np.asarray([bugged_dataset, dataset])
+            lang_base += "_fix_bug"
+            use_xy = True
 
         model = DiffusionModel(
                 TOKENS_CAPACITY, DICTIONARY_SIZE, network, batch_size, max_signal_rate, 
-                min_signal_rate, ema
+                min_signal_rate, ema, use_xy
             )
         print("Model created")
 
@@ -117,7 +133,7 @@ def main():
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
         sample_generator_callback = SaveSamplesCallback(
-            checkpoint_base_path, 5, 100, converter=convert_back_to_code, scaler=scaler_up,
+            checkpoint_base_path, 5, 100, converter=convert_back_to_code_c_v1, scaler=scaler_up,
             history_path=f"{lang_base}/history.csv", append_history=is_loading
         )
 
@@ -125,9 +141,10 @@ def main():
         print(f"dataset min: {tf.reduce_min(dataset)}")
         print(f"dataset max: {tf.reduce_max(dataset)}")
 
+        print(f"Normalized dataset shape: {dataset_for_normalization.shape}")
         model.normalizer = resolve_normalization(
             args.compute_normalizer, TOKENS_CAPACITY,
-            file=f"{lang_base}/normalizer_weights.npy", dataset=dataset
+            file=f"{lang_base}/normalizer_weights.npy", dataset=dataset_for_normalization
         )
 
         if is_loading:
@@ -150,8 +167,10 @@ def main():
             fHandler.write("block_depth = " + str(block_depth) + "\n")
 
         print("Started training")
-        model.fit(
-            dataset,
+        if use_xy:
+            model.fit(
+            dataset[0],
+            dataset[1],
             batch_size=batch_size,
             epochs=num_epochs,
             callbacks=[
@@ -159,6 +178,16 @@ def main():
                 sample_generator_callback
             ],
         )
+        else:
+            model.fit(
+                dataset,
+                batch_size=batch_size,
+                epochs=num_epochs,
+                callbacks=[
+                    checkpoint_callback,
+                    sample_generator_callback
+                ],
+            )
         print("Completed training")
     except Exception as e:
         logger.exception(e)

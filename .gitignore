@@ -6,4 +6,5 @@ __pycache__/
 /venv
 *.log
 *.parsed
-/evaluation
+/evaluation/simplest_language_model/
+/evaluation/sql_simple_language_model/

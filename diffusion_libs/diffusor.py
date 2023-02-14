@@ -26,7 +26,7 @@ def scale_dataset(dataframe, dic_size):
 class DiffusionModel(keras.Model):
     def __init__(
       self, tokens_capacity, dictionary_size, network, batch_size, 
-      max_signal_rate, min_signal_rate, ema, 
+      max_signal_rate, min_signal_rate, ema, use_xy
     ):
         super().__init__()
 
@@ -39,6 +39,7 @@ class DiffusionModel(keras.Model):
         self.ema = ema
         self.ema_network = keras.models.clone_model(self.network)
         self.normalizer = layers.Normalization() # shouldn't have axis=None cause normalization will be then strongly affected by mostly EMPTY samples
+        self.use_xy = use_xy
 
     def compile(self, **kwargs):
         super().compile(**kwargs)
@@ -125,18 +126,33 @@ class DiffusionModel(keras.Model):
         denormalized_generated_sample = self.denormalize(generated_sample)
         return generated_sample, tf.clip_by_value(tf.math.abs(denormalized_generated_sample), 0, 1)
 
-    def train_step(self, samples):
-        # normalize samples to have standard deviation of 1, like the noises
-        samples = self.normalizer(samples, training=True)
-        noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
+    def train_step(self, samples):        
+        # if we train fixing buggs than bugged samples are treated as noisy_sample
+        if self.use_xy:
+            diffusion_times = tf.random.uniform(
+                shape=(self.batch_size, 1), minval=0.0, maxval=0.9 # changed maxval because we know that bugged sample is already "noisy" in some sense
+            )
+            # lest assume that noise rates and sample rates are always the same in case of training on fixing bugs
+            noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+            bugged, original = samples
+            samples = self.normalizer(original, training=True)
+            bugged_sample = self.normalizer(bugged, training=True)
+            little_noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
+            noisy_samples = signal_rates * bugged_sample + noise_rates * little_noises
+            noises = samples - noisy_samples # TODO: try reverse of this op and try to use rates (signal and noise)
+        else:
+            # normalize samples to have standard deviation of 1, like the noises
+            # sample uniform random diffusion times
+            diffusion_times = tf.random.uniform(
+                shape=(self.batch_size, 1), minval=0.0, maxval=1.0
+            )
+            noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+            samples = self.normalizer(samples, training=True)
+            noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
+            # mix the samples with noises accordingly
+            noisy_samples = signal_rates * samples + noise_rates * noises
 
-        # sample uniform random diffusion times
-        diffusion_times = tf.random.uniform(
-            shape=(self.batch_size, 1), minval=0.0, maxval=1.0
-        )
-        noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
-        # mix the samples with noises accordingly
-        noisy_samples = signal_rates * samples + noise_rates * noises
+
         with tf.GradientTape() as tape:
             # train the network to separate noisy samples to their components
             pred_noises, pred_samples = self.denoise(
@@ -146,7 +162,10 @@ class DiffusionModel(keras.Model):
             noise_loss = self.loss(noises, pred_noises)  # used for training
             sample_loss = self.loss(samples, pred_samples)  # only used as metric
 
-            gradients = tape.gradient(noise_loss, self.network.trainable_weights)
+            if self.use_xy:
+                gradients = tape.gradient(sample_loss, self.network.trainable_weights)
+            else:
+                gradients = tape.gradient(noise_loss, self.network.trainable_weights)
             self.optimizer.apply_gradients(zip(gradients, self.network.trainable_weights))
 
         self.noise_loss_tracker.update_state(noise_loss)
@@ -159,6 +178,9 @@ class DiffusionModel(keras.Model):
         return {m.name: m.result() for m in self.metrics}
 
     def test_step(self, samples):
+        if self.use_xy:
+            x,y = samples
+            samples = x
         samples = self.normalizer(samples, training=False)
         noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
@@ -182,3 +204,10 @@ class DiffusionModel(keras.Model):
         self.noise_loss_tracker.update_state(noise_loss)
 
         return {m.name: m.result() for m in self.metrics}
+
+    # sample should be a vector of values scaled to 0-1 value range
+    def fix_sample(self, sample, diffusion_steps):
+        sample = self.normalizer(sample, training=False)
+        generated_sample = self.reverse_diffusion(sample, diffusion_steps)
+        denormalized_generated_sample = self.denormalize(generated_sample)
+        return generated_sample, tf.clip_by_value(tf.math.abs(denormalized_generated_sample), 0, 1)
