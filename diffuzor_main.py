@@ -1,5 +1,6 @@
 from diffusion_libs import *
 from samples_generators import convert_back_to_code_c_v1, fill_vocabulary_c_v1, remove_token_and_shift_sample_randomized, ErrorsIntroducer, vocabulary_c_v1
+from samples_generators import convert_back_to_code_c_v2, fill_vocabulary_c_v2, vocabulary_c_v2
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
@@ -41,6 +42,7 @@ def parse():
 def main():
     fill_vocabulary()
     fill_vocabulary_c_v1()
+    fill_vocabulary_c_v2()
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -56,14 +58,14 @@ def main():
     learning_rate = 1e-3
 
     # dictionary related
-    DICTIONARY_SIZE = 37
+    DICTIONARY_SIZE = 43
     TOKENS_CAPACITY = 256
 
     widths = [64, 64, 96, 128]
     block_depth = 2
 
-    data_dir = f"./data/simple_c_v1/"
-    lang_base = f"checkpoints/simple_c_v1"
+    data_dir = f"./data/simple_c_v2/"
+    lang_base = f"checkpoints/simple_c_v2"
 
     args = parse()
     if args.dev:
@@ -95,8 +97,11 @@ def main():
         print("Network created")
         # network.summary()
 
-        dictionary = {el:idx for idx,el in enumerate(vocabulary_c_v1)}
+        dictionary = {el:idx for idx,el in enumerate(vocabulary_c_v2)}
         use_xy = False
+        dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
+        print(f"dataset min: {tf.reduce_min(dataset)}")
+        print(f"dataset max: {tf.reduce_max(dataset)}")
         dataset_for_normalization = dataset
         if args.errors_learning:
             remove_tokens_introducer = remove_token_and_shift_sample_randomized([";", "+", "-", "/", "="], 0.5, dictionary, TOKENS_CAPACITY)
@@ -133,13 +138,9 @@ def main():
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
         sample_generator_callback = SaveSamplesCallback(
-            checkpoint_base_path, 5, 100, converter=convert_back_to_code_c_v1, scaler=scaler_up,
+            checkpoint_base_path, 5, 100, converter=convert_back_to_code_c_v2, scaler=scaler_up,
             history_path=f"{lang_base}/history.csv", append_history=is_loading
         )
-
-        dataset = scale_dataset_down(dataset, DICTIONARY_SIZE)
-        print(f"dataset min: {tf.reduce_min(dataset)}")
-        print(f"dataset max: {tf.reduce_max(dataset)}")
 
         print(f"Normalized dataset shape: {dataset_for_normalization.shape}")
         model.normalizer = resolve_normalization(
