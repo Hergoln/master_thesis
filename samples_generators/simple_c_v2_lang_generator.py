@@ -1,8 +1,8 @@
 isFilled = False
 vocabulary_c_v2 = [
-  "void", "int", "char", "STRING", "NUM", "return", "printf", "scanf", 
+  "EMPTY", "void", "int", "char", "STRING", "NUM",
   "-", "+", "/", "*", "&", "|", "=", "(", ")", ";", "{", "}", ",", 
-  "if", "else", "!", "<", ">", "EMPTY"
+  "!", "<", ">", "return", "printf", "scanf", "if", "else"
 ]
 
 
