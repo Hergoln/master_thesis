@@ -2,4 +2,5 @@ from .simple_langauge_samples_generator import sl_generate_samples, sl_decode_sa
 from .sql_simple_samples_generator import sql_simple_decode_sample, sql_simple_decode_sample_into_text
 from .simple_c_v1_lang_generator import fill_vocabulary_c_v1, vocabulary_c_v1, convert_back_to_code_c_v1
 from .simple_c_v2_lang_generator import fill_vocabulary_c_v2, vocabulary_c_v2, convert_back_to_code_c_v2
+from .simple_c_v3_lang_generator import fill_vocabulary_c_v3, vocabulary_c_v3, convert_back_to_code_c_v3
 from .simple_c_v1_errors_augment import ErrorsIntroducer, remove_token_and_shift_sample_randomized
