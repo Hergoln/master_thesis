@@ -1,5 +1,5 @@
 from diffusion_libs import *
-from samples_generators import convert_back_to_code_c_v2, fill_vocabulary_c_v2, vocabulary_c_v2
+from samples_generators import convert_back_to_code_c_v3, fill_vocabulary_c_v3, vocabulary_c_v3
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
@@ -21,7 +21,6 @@ def resolve_normalization(compute, tokens_capacity, file, dataset):
         print("adapted normalizer") 
     else:
         n_w = np.load(file, allow_pickle=True)
-        print(n_w.shape)
         layer = keras.layers.Normalization(mean=n_w[0], variance=n_w[1])
         print("loaded normalizer")
     layer.build((tokens_capacity))
@@ -39,7 +38,8 @@ def parse():
 
 
 def main():
-    fill_vocabulary_c_v2()
+    fill_vocabulary_c_v3()
+    print(len(vocabulary_c_v3))
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -55,14 +55,14 @@ def main():
     learning_rate = 1e-4
 
     # dictionary related
-    DICTIONARY_SIZE = 43
+    DICTIONARY_SIZE = 45
     TOKENS_CAPACITY = 256
 
     widths = [64, 64, 96, 128, 256]
     block_depth = 2
 
-    data_dir = f"./data/simple_c_v2/"
-    lang_base = f"checkpoints/simple_c_v2"
+    data_dir = f"./data/simple_c_v3/"
+    lang_base = f"checkpoints/simple_c_v3"
 
     args = parse()
     if args.dev:
@@ -81,7 +81,7 @@ def main():
 
     try:
         print("Started loading dataset")
-        dataset, filenames = load_dataset(data_dir, max_size, use_threads=False)
+        dataset, filenames = load_dataset(data_dir, max_size, use_threads=True)
         # dataset size has to be a multiplication of batch_size
         dataset = dataset_trimmer(dataset, batch_size)
         print("Loaded dataset")
@@ -124,7 +124,7 @@ def main():
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
         sample_generator_callback = SaveSamplesCallback(
-            checkpoint_base_path, 5, 100, converter=convert_back_to_code_c_v2, scaler=scaler_up,
+            checkpoint_base_path, 5, 100, converter=convert_back_to_code_c_v3, scaler=scaler_up,
             history_path=f"{lang_base}/history.csv", append_history=is_loading
         )
 
