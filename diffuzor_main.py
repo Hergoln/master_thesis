@@ -1,5 +1,4 @@
 from diffusion_libs import *
-from samples_generators import convert_back_to_code_c_v3, fill_vocabulary_c_v3, vocabulary_c_v3
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
@@ -38,8 +37,7 @@ def parse():
 
 
 def main():
-    fill_vocabulary_c_v3()
-    print(len(vocabulary_c_v3))
+    fill_vocabulary()
     # sampling
     min_signal_rate = 0.02
     max_signal_rate = 0.95
@@ -52,17 +50,17 @@ def main():
     # optimization
     batch_size = 32
     ema = 0.999
-    learning_rate = 1e-4
+    learning_rate = 1e-5
 
     # dictionary related
-    DICTIONARY_SIZE = 45
-    TOKENS_CAPACITY = 256
+    DICTIONARY_SIZE = 246
+    TOKENS_CAPACITY = 2048
 
-    widths = [64, 64, 96, 128, 256]
+    widths = [64, 64, 96, 96, 128]
     block_depth = 2
 
-    data_dir = f"./data/simple_c_v3/"
-    lang_base = f"checkpoints/simple_c_v3"
+    data_dir = f"./data/parsed/"
+    lang_base = f"checkpoints/c_lang"
 
     args = parse()
     if args.dev:
@@ -124,7 +122,7 @@ def main():
 
         scaler_up = lambda x: scale_dataset(x, DICTIONARY_SIZE)
         sample_generator_callback = SaveSamplesCallback(
-            checkpoint_base_path, 5, 100, converter=convert_back_to_code_c_v3, scaler=scaler_up,
+            checkpoint_base_path, 5, 100, converter=convert_back_to_code, scaler=scaler_up,
             history_path=f"{lang_base}/history.csv", append_history=is_loading
         )
 
