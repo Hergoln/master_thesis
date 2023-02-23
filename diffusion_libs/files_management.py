@@ -3,7 +3,7 @@ import os
 from multiprocessing.pool import ThreadPool
 
 def prepare_record(parsed_file):
-  print(parsed_file)
+  # print(parsed_file)
   parsed = np.loadtxt(parsed_file, dtype=float, converters=float)
   return parsed
 
