@@ -26,7 +26,7 @@ def scale_dataset(dataframe, dic_size):
 class DiffusionModel(keras.Model):
     def __init__(
       self, tokens_capacity, dictionary_size, network, batch_size, 
-      max_signal_rate, min_signal_rate, ema
+      max_signal_rate, min_signal_rate, ema, use_xy=False
     ):
         super().__init__()
 
@@ -39,6 +39,7 @@ class DiffusionModel(keras.Model):
         self.ema = ema
         self.ema_network = keras.models.clone_model(network)
         self.normalizer = None
+        self.use_xy = use_xy
 
     def compile(self, **kwargs):
         super().compile(**kwargs)
@@ -125,18 +126,29 @@ class DiffusionModel(keras.Model):
         denormalized_generated_sample = self.denormalize(generated_sample)
         return generated_sample, tf.clip_by_value(tf.math.abs(denormalized_generated_sample), 0, 1)
 
-    def train_step(self, samples):        
-        # normalize samples to have standard deviation of 1, like the noises
-        samples = self.normalizer(samples, training=True)
-        noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
+    def train_step(self, samples):
+        if not self.use_xy:        
+            # normalize samples to have standard deviation of 1, like the noises
+            samples = self.normalizer(samples, training=True)
+            noises = tf.random.normal(shape=(self.batch_size, self.tokens_capacity))
 
-        # sample uniform random diffusion times
-        diffusion_times = tf.random.uniform(
-            shape=(self.batch_size, 1), minval=0.0, maxval=1.0
-        )
-        noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
-        # mix the samples with noises accordingly
-        noisy_samples = signal_rates * samples + noise_rates * noises
+            # sample uniform random diffusion times
+            diffusion_times = tf.random.uniform(
+                shape=(self.batch_size, 1), minval=0.0, maxval=1.0
+            )
+            noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+            # mix the samples with noises accordingly
+            noisy_samples = signal_rates * samples + noise_rates * noises
+        else:
+            bugged, original = samples
+            samples = self.normalizer(original, training=True)
+            noisy_samples = self.normalizer(bugged, training=True)
+            diffusion_times = tf.random.uniform(
+                shape=(self.batch_size, 1), minval=0.0, maxval=1.0
+            )
+            noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+            # below line is a blasphemy because of how equation that it derives from was created
+            noises = (noisy_samples - signal_rates * samples) / noise_rates
 
         with tf.GradientTape() as tape:
             # train the network to separate noisy samples to their components
