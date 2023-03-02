@@ -198,6 +198,7 @@ class DiffusionModel(keras.Model):
 
     # sample should be a vector of values scaled to 0-1 value range
     def fix_sample(self, sample, diffusion_steps):
+        sample = tf.expand_dims(sample, axis=0)
         sample = self.normalizer(sample, training=False)
         generated_sample = self.reverse_diffusion(sample, diffusion_steps)
         denormalized_generated_sample = self.denormalize(generated_sample)
